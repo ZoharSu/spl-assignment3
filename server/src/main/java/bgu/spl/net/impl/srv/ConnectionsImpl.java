@@ -4,13 +4,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 public class ConnectionsImpl<T> implements Connections<T> {
-    ArrayList<Connection<T>> connections;
-    ConcurrentHashMap<String, LinkedList<ConnectionHandler<T>>> channels;
+    private ArrayList<Connection<T>> connections;
+    private ConcurrentHashMap<String, LinkedList<ConnectionHandler<T>>> channels;
+    private BiFunction<T, Integer, T> appendId;
 
     private static class Connection<T> {
         public ConnectionHandler<T> handler;
@@ -20,7 +22,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public boolean send(int connectionId, T msg) {
         Connection<T> conn = connectionId < connections.size()
                            ? connections.get(connectionId) : null;
-
+                           
         if (conn == null)
             return false;
 

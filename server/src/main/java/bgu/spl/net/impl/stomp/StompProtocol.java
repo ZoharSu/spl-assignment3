@@ -7,6 +7,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     private int connectionId;
     private Connections<String> connections;
+    private boolean loggedIn = false;
 
     @Override
     public boolean shouldTerminate() {
@@ -22,8 +23,69 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     @Override
     public void process(String message) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'process'");
+        int lineEnd;
+        // TODO: Make sure message ends with null character
+        if (message == null || (lineEnd = message.indexOf('\n')) == -1) {
+            // Handle invalid message
+            return;
+        }
+
+        String command = message.substring(0, lineEnd);
+
+        switch (command) {
+            case "CONNECT":     handleConnect(message);     break;
+            case "SEND":        handleSend(message);        break;
+            case "SUBSCRIBE":   handleSubscribe(message);   break;
+            case "UNSUBSCRIBE": handleUnsubscribe(message); break;
+            case "DISCONNECT":  handleDisconnect(message);  break;
+            default:
+                // Handle invalid message
+                break;
+        }
+        // Send RECIEPT accordingly
+    }
+
+    private boolean isLoggedIn() {
+        return loggedIn;
+    }
+
+    private void handleConnect(String message) {
+        if (isLoggedIn()) {
+            // Handle already logged in
+            return;
+        }
+        // TODO:
+        // Confirm with database
+        // Login
+        // Send CONNECTED frame
+    }
+
+    private void handleSend(String message) {
+        if (!isLoggedIn()) {
+            // Handle not logged in
+            return;
+        }
+    }
+
+    private void handleSubscribe(String message) {
+        if (!isLoggedIn()) {
+            // Handle not logged in
+            return;
+        }
+    }
+
+    private void handleUnsubscribe(String message) {
+        if (!isLoggedIn()) {
+            // Handle not logged in
+            return;
+        }
+    }
+
+    private void handleDisconnect(String message) {
+        if (!isLoggedIn()) {
+            // Handle not logged in
+            return;
+        }
     }
     
 }
