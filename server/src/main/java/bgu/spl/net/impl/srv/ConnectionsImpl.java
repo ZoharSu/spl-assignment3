@@ -51,4 +51,10 @@ public class ConnectionsImpl<T> implements Connections<T> {
             conn.handler.close();
         } catch (IOException e) {}
     }
+
+    @Override
+    public boolean connect(int connectionId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'connect'");
+    }
 }

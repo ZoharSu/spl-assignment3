@@ -35,8 +35,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                 if (nextMessage != null) {
                     T response = protocol.process(nextMessage);
                     if (response != null) {
-                        out.write(encdec.encode(response));
-                        out.flush();
+                        send(response);
                     }
                 }
             }
@@ -55,6 +54,15 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
     @Override
     public void send(T msg) {
-        //IMPLEMENT IF NEEDED
+        if (sock.isClosed()) return;
+
+        try {
+            synchronized(out) {
+                out.write((encdec.encode(msg)));
+                out.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

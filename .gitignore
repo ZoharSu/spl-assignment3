@@ -101,3 +101,6 @@ client/bin
 server/.settings
 server/target/maven-status/maven-compiler-plugin/compile/default-compile
 server/target/maven-archiver
+server/.classpath
+.devcontainer/devcontainer.json
+server/.devcontainer/devcontainer.json
