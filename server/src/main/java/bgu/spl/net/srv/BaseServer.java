@@ -2,6 +2,7 @@ package bgu.spl.net.srv;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.impl.srv.ConnectionsImpl;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -14,6 +15,7 @@ public abstract class BaseServer<T> implements Server<T> {
     private final Supplier<StompMessagingProtocol<T>> protocolFactory;
     private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
+    private final Connections<T> connections;
 
     public BaseServer(
             int port,
@@ -24,6 +26,7 @@ public abstract class BaseServer<T> implements Server<T> {
         this.protocolFactory = protocolFactory;
         this.encdecFactory = encdecFactory;
         this.sock = null;
+        this.connections = new ConnectionsImpl<>(protocolFactory.get()::applyId);
     }
 
     @Override

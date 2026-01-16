@@ -87,5 +87,10 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             return;
         }
     }
-    
+
+    @Override
+    public String applyId(String msg, int id) {
+        // TODO: implement this
+        throw new UnsupportedOperationException("TODO: Implement applyId");
+    }
 }
