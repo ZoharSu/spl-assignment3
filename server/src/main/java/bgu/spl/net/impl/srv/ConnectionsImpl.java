@@ -8,8 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
-// OPTIMIZE: Maybe add a hashtable from channels to lists of connections
-//           Only really matters should this run poorly
 public class ConnectionsImpl<T> implements Connections<T> {
     ArrayList<Connection<T>> connections;
     ConcurrentHashMap<String, LinkedList<ConnectionHandler<T>>> channels;
@@ -20,11 +18,13 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     public boolean send(int connectionId, T msg) {
-        if (connectionId >= connections.size() || connections.get(connectionId) == null)
+        Connection<T> conn = connectionId < connections.size()
+                           ? connections.get(connectionId) : null;
+
+        if (conn == null)
             return false;
 
-        ConnectionHandler<T> handler = connections.get(connectionId).handler;
-        handler.send(msg);
+        conn.handler.send(msg);
 
         return true;
     }
@@ -38,6 +38,9 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     public void disconnect(int connectionId) {
+        if (connectionId >= connections.size())
+            return; // TODO:
+
         Connection<T> conn = connections.get(connectionId);
 
         if (conn == null) return;

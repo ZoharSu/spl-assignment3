@@ -23,7 +23,7 @@ public class StompServer {
     }
 
     private static void tpcMain(int port) {
-        Server.threadPerClient(port, protocolFactory, ObjectEncoderDecoder::new);
+        Server.threadPerClient(port, StompProtocol::new , ObjectEncoderDecoder::new);
     }
 
     private static void reactorMain(int port, int nthreads) {
