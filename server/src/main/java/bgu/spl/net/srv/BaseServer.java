@@ -41,10 +41,15 @@ public abstract class BaseServer<T> implements Server<T> {
 
                 Socket clientSock = serverSock.accept();
 
+                StompMessagingProtocol<T> protocol = protocolFactory.get();
                 BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(
                         clientSock,
                         encdecFactory.get(),
-                        protocolFactory.get());
+                        protocol);
+
+                // TODO: extract cid generation into here
+                int cid = connections.register(handler);
+                protocol.start(cid, connections);
 
                 execute(handler);
             }

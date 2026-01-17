@@ -5,7 +5,7 @@ import bgu.spl.net.srv.Connections;
 
 public class StompProtocol implements StompMessagingProtocol<String> {
 
-    private int connectionId;
+    private int clientId;
     private Connections<String> connections;
     private boolean loggedIn = false;
 
@@ -17,7 +17,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     @Override
     public void start(int connectionId, Connections<String> connections) {
-        this.connectionId = connectionId;
+        this.clientId = connectionId;
         this.connections = connections;
     }
 

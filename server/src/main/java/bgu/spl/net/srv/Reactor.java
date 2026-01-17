@@ -2,6 +2,9 @@ package bgu.spl.net.srv;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.impl.srv.ConnectionsImpl;
+import bgu.spl.net.impl.stomp.StompProtocol;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ClosedSelectorException;
@@ -22,6 +25,7 @@ public class Reactor<T> implements Server<T> {
 
     private Thread selectorThread;
     private final ConcurrentLinkedQueue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
+    private final Connections<T> connections;
 
     public Reactor(
             int numThreads,
@@ -33,6 +37,7 @@ public class Reactor<T> implements Server<T> {
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.readerFactory = readerFactory;
+        this.connections = new ConnectionsImpl<>(protocolFactory.get()::applyId);
     }
 
     @Override
@@ -95,11 +100,18 @@ public class Reactor<T> implements Server<T> {
     private void handleAccept(ServerSocketChannel serverChan, Selector selector) throws IOException {
         SocketChannel clientChan = serverChan.accept();
         clientChan.configureBlocking(false);
+        StompMessagingProtocol<T> protocol = protocolFactory.get();
+
         final NonBlockingConnectionHandler<T> handler = new NonBlockingConnectionHandler<>(
                 readerFactory.get(),
-                protocolFactory.get(),
+                protocol,
                 clientChan,
                 this);
+        // FIXME: this fucked up on so many levels
+        //        we should move the cid generation to here. :/
+        int cid = connections.register(handler);
+        protocol.start(cid, connections);
+
         clientChan.register(selector, SelectionKey.OP_READ, handler);
     }
 
