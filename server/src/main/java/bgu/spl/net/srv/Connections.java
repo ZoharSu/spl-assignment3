@@ -1,7 +1,5 @@
 package bgu.spl.net.srv;
 
-import java.io.IOException;
-
 public interface Connections<T> {
 
     boolean send(int connectionId, T msg);
@@ -10,5 +8,5 @@ public interface Connections<T> {
 
     void disconnect(int connectionId);
 
-    boolean connect(int connectionId);
+    int register(ConnectionHandler<T> handler);
 }
