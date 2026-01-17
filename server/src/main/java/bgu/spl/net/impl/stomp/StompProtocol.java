@@ -90,7 +90,18 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     @Override
     public String applyId(String msg, int id) {
-        // TODO: implement this
-        throw new UnsupportedOperationException("TODO: Implement applyId");
+        int lineEnd;
+        if (msg == null || (lineEnd = msg.indexOf('\n')) == -1)
+            return "";
+
+        String command = msg.substring(0, lineEnd);
+        if (command == "ERROR" || command == "RECIEPT")
+            return msg;
+
+        int null_i = msg.indexOf('\u0000');
+        if (null_i != -1)
+            msg = msg.substring(0, null_i);
+
+        return msg + "\r\nsubscription:" + id + '\u0000';
     }
 }
