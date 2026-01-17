@@ -1,7 +1,7 @@
 package bgu.spl.net.impl.srv; 
 
-import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -17,7 +17,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
     // TODO: deal with the case where an element is removed
     //       while it's connectionId is still in connections
-    private ConcurrentHashMap<String, LinkedList<Integer>> channelTosubId;
+    private ConcurrentHashMap<String, ConcurrentLinkedQueue<Integer>> channelTosubId;
     private BiFunction<T, Integer, T> appendId;
     private AtomicInteger nextClientId;
 
@@ -42,10 +42,10 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     public void send(String channel, T msg) {
-        LinkedList<Integer> handlers = channelTosubId.get(channel);
+        ConcurrentLinkedQueue<Integer> subIds = channelTosubId.get(channel);
 
-        if (handlers != null)
-            for (int id : handlers)
+        if (subIds != null)
+            for (int id : subIds)
                 send(id, msg);
     }
 
