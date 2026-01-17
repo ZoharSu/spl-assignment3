@@ -9,4 +9,6 @@ public interface Connections<T> {
     void disconnect(int connectionId);
 
     int register(ConnectionHandler<T> handler);
+
+    void subscribe(int cId, int subId, String topic);
 }

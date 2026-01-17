@@ -61,4 +61,9 @@ public class ConnectionsImpl<T> implements Connections<T> {
         return cid;
     }
 
+    @Override
+    public void subscribe(int cId, int subId, String topic) {
+        subsIdTocId.put(subId, cId);
+        channelTosubId.get(topic).add(subId);
+    }
 }

@@ -1,5 +1,7 @@
 package bgu.spl.net.impl.stomp;
 
+import java.util.stream.Stream;
+
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.Connections;
 
@@ -72,6 +74,39 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             // Handle not logged in
             return;
         }
+
+        Integer id  = null;
+        String dest = null;
+
+        Stream<String> s = message.lines().skip(1); // Skip the command
+
+        while (s.findFirst().isPresent()) {
+            String line = s.findFirst().get();
+            s = s.skip(1);
+
+            String[] parts = line.split(":");
+
+            if (parts.length != 2) {
+                parseError(message, "Invalid line\n");
+                return;
+            }
+
+            if (parts[0].equals("destination") && dest == null)
+                dest = parts[1];
+            else if (parts[0].equals("id") && id == null)
+                id = Integer.parseInt(parts[1]);
+            else {
+                parseError(message, "Invalid line\n");
+                return;
+            }
+        }
+
+        if (id == null || dest == null) {
+            parseError(message, "Not enough headers");
+            return;
+        }
+
+        connections.subscribe(clientId, dest);
     }
 
     private void handleUnsubscribe(String message) {
@@ -103,5 +138,10 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             msg = msg.substring(0, null_i);
 
         return msg + "\r\nsubscription:" + id + '\u0000';
+    }
+
+    private void parseError(String msg, String what) {
+        // TODO: implement
+        throw new UnsupportedOperationException("Not implemented");
     }
 }
