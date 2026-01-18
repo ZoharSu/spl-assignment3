@@ -1,7 +1,5 @@
 package bgu.spl.net.impl.stomp;
 
-import java.util.stream.Stream;
-
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.Connections;
 
@@ -25,116 +23,33 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     @Override
     public void process(String message) {
-        int lineEnd;
-        // TODO: Make sure message ends with null character
-        if (message == null || (lineEnd = message.indexOf('\n')) == -1) {
-            // Handle invalid message
-            return;
+
+        StompParser p;
+        try { p = new StompParser(message); }
+        catch (IllegalArgumentException e) {
+            sendError(message, e.getMessage()); return;
         }
 
-        String command = message.substring(0, lineEnd);
+         // TODO: handle not logged in
+        if (!p.isConnect() && !isLoggedIn());
 
-        switch (command) {
-            case "CONNECT":     handleConnect(message);     break;
-            case "SEND":        handleSend(message);        break;
-            case "SUBSCRIBE":   handleSubscribe(message);   break;
-            case "UNSUBSCRIBE": handleUnsubscribe(message); break;
-            case "DISCONNECT":  handleDisconnect(message);  break;
-            default:
-                // Handle invalid message
-                break;
+        if (p.isSend() && !connections.isSubscribed(clientId, p.dest))
+            sendError(message, "You cannot send a message in a topic which you're not subscribed to");
+
+        switch (p.t) {
+            case SUBSCRIBE:   connections.subscribe(clientId, p.id, p.dest); break;
+            case UNSUBSCRIBE: connections.disconnect(p.id); break;
+            case SEND:        connections.send(p.dest, p.body); break;
+            case DISCONNECT:  handleDisconnect(p.reciept); break;
+            case CONNECT: break;
         }
-        // Send RECIEPT accordingly
     }
 
     private boolean isLoggedIn() {
         return loggedIn;
     }
 
-    private void handleConnect(String message) {
-        if (isLoggedIn()) {
-            // Handle already logged in
-            return;
-        }
-        // TODO:
-        // Confirm with database
-        // Login
-        // Send CONNECTED frame
-    }
-
-    private void handleSend(String message) {
-        if (!isLoggedIn()) {
-            // Handle not logged in
-            return;
-        }
-    }
-
-    private void handleSubscribe(String message) {
-        if (!isLoggedIn()) {
-            // Handle not logged in
-            return;
-        }
-
-        Integer id  = null;
-        String dest = null;
-
-        Stream<String> s = message.lines().skip(1); // Skip the command
-
-        while (s.findFirst().isPresent()) {
-            String line = s.findFirst().get();
-            s = s.skip(1);
-
-            String[] parts = line.split(":");
-
-            if (parts.length != 2) {
-                sendError(message, "Invalid line\n");
-                return;
-            }
-
-            if (parts[0].equals("destination") && dest == null)
-                dest = parts[1];
-            else if (parts[0].equals("id") && id == null)
-                id = Integer.parseInt(parts[1]);
-            else {
-                sendError(message, "Invalid line\n");
-                return;
-            }
-        }
-
-        if (id == null || dest == null) {
-            sendError(message, "Not enough headers");
-            return;
-        }
-
-        connections.subscribe(clientId, id, dest);
-    }
-
-    private void handleUnsubscribe(String message) {
-        if (!isLoggedIn())
-            // Handle not logged in
-            return;
-
-        Stream<String> s = message.lines();
-        s.skip(1);
-        if (s.findFirst().isEmpty()) {
-            sendError(message, "No headers in message"); return;
-        }
-
-        String[] idHeader = s.findFirst().get().split(":");
-
-        if (idHeader.length != 2 || idHeader[0] != "id") {
-            sendError(message, "Improper Id header"); return;
-        }
-
-        int id = Integer.parseInt(idHeader[1]);
-        s.skip(1);
-        if (s.toString() != "\n\u0000") {
-            sendError(message, "Improper Body for unsubscribe request"); return;
-        }
-        connections.disconnect(id);
-    }
-
-    private void handleDisconnect(String message) {
+    private void handleDisconnect(int reciept) {
         if (!isLoggedIn()) {
             // Handle not logged in
             return;
@@ -155,7 +70,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         if (null_i != -1)
             msg = msg.substring(0, null_i);
 
-        return msg + "\r\nsubscription:" + id + '\u0000';
+        return msg + "\nsubscription:" + id + '\u0000';
     }
 
     private void sendError(String msg, String what) {
