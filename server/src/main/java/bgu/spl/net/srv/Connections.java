@@ -11,4 +11,6 @@ public interface Connections<T> {
     int register(ConnectionHandler<T> handler);
 
     void subscribe(int cId, int subId, String topic);
+
+    boolean isSubscribed(int cId, String topic);
 }

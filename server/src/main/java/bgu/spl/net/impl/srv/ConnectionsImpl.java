@@ -66,4 +66,11 @@ public class ConnectionsImpl<T> implements Connections<T> {
         subsIdTocId.put(subId, cId);
         channelTosubId.get(topic).add(subId);
     }
+
+    @Override
+    public boolean isSubscribed(int cId, String topic) {
+        ConcurrentLinkedQueue<Integer> clients = channelTosubId.get(topic);
+
+        return clients != null && clients.contains(cId);
+    }
 }
