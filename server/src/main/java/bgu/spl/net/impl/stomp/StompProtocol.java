@@ -87,7 +87,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             String[] parts = line.split(":");
 
             if (parts.length != 2) {
-                parseError(message, "Invalid line\n");
+                sendError(message, "Invalid line\n");
                 return;
             }
 
@@ -96,13 +96,13 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             else if (parts[0].equals("id") && id == null)
                 id = Integer.parseInt(parts[1]);
             else {
-                parseError(message, "Invalid line\n");
+                sendError(message, "Invalid line\n");
                 return;
             }
         }
 
         if (id == null || dest == null) {
-            parseError(message, "Not enough headers");
+            sendError(message, "Not enough headers");
             return;
         }
 
@@ -117,19 +117,19 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         Stream<String> s = message.lines();
         s.skip(1);
         if (s.findFirst().isEmpty()) {
-            parseError(message, "No headers in message"); return;
+            sendError(message, "No headers in message"); return;
         }
 
         String[] idHeader = s.findFirst().get().split(":");
 
         if (idHeader.length != 2 || idHeader[0] != "id") {
-            parseError(message, "Improper Id header"); return;
+            sendError(message, "Improper Id header"); return;
         }
 
         int id = Integer.parseInt(idHeader[1]);
         s.skip(1);
         if (s.toString() != "\n\u0000") {
-            parseError(message, "Improper Body for unsubscribe request"); return;
+            sendError(message, "Improper Body for unsubscribe request"); return;
         }
         connections.disconnect(id);
     }
@@ -158,7 +158,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         return msg + "\r\nsubscription:" + id + '\u0000';
     }
 
-    private void parseError(String msg, String what) {
+    private void sendError(String msg, String what) {
         // TODO: implement
         throw new UnsupportedOperationException("Not implemented");
     }
