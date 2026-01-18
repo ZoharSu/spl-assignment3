@@ -106,7 +106,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             return;
         }
 
-        connections.subscribe(clientId, dest);
+        connections.subscribe(clientId, id, dest);
     }
 
     private void handleUnsubscribe(String message) {
