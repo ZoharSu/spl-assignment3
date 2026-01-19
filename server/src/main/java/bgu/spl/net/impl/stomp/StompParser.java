@@ -33,7 +33,7 @@ class StompParser {
     }
 
     private void parseHeadersAndBody(String msg) {
-        // msg contains headers and body
+        // msg contains headers and body only
         int eol = msg.indexOf("\n");
         int loc = 0;
         while (eol != -1) {
@@ -99,24 +99,29 @@ class StompParser {
         switch (t) {
             case CONNECT:
                 if (host == null || !host.equals("stomp.cs.bgu.ac.il")
-                    || login == null || pass == null || ver == null)
+                    || login == null || pass == null || ver == null || ver != "1.2"
+                    || dest != null || id != null)
                     throw new IllegalArgumentException("Invalid CONNECT headers");
                 break;
             case SEND:
-                // body can be empty
-                if (dest == null)
+                // TODO: can body can be empty?
+                if (dest == null || host != null || id != null || login != null
+                    || pass != null || ver != null)
                     throw new IllegalArgumentException("Invalid SEND headers");
                 break;
             case SUBSCRIBE:
-                if (dest == null || id == null)
+                if (dest == null || id == null || host != null || login != null
+                    || pass != null || ver != null)
                     throw new IllegalArgumentException("Invalid SUBSCRIBE headers");
                 break;
             case UNSUBSCRIBE:
-                if (id == null)
+                if (id == null || dest != null || host != null || login != null
+                    || pass != null || ver != null)
                     throw new IllegalArgumentException("Invalid UNSUBSCRIBE headers");
                 break;
             case DISCONNECT:
-                if (reciept == null)
+                if (reciept == null || dest != null || id != null || host != null
+                    || login != null || pass != null || ver != null)
                     throw new IllegalArgumentException("Invalid DISCONNECT headers");
                 break;
         }
