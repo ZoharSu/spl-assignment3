@@ -45,9 +45,13 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public void send(String channel, T msg) {
         ConcurrentLinkedQueue<Integer> subIds = channelTosubId.get(channel);
 
-        if (subIds != null)
-            for (int id : subIds)
-                send(id, msg);
+        if (subIds == null)
+            return;
+
+        subIds.removeIf(x -> x == null);
+
+        for (int id : subIds)
+            send(id, msg);
     }
 
     public void disconnect(int clientId) {
