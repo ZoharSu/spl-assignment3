@@ -1,0 +1,5 @@
+class stompCommand {
+private:
+public:
+    
+}

@@ -6,5 +6,8 @@
 class StompProtocol
 {
 private:
+    ConnectionHandler handler;
+
 public:
+    StompProtocol(ConnectionHandler handler);
 };
