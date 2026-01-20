@@ -104,3 +104,5 @@ server/target/maven-archiver
 server/.classpath
 .devcontainer/devcontainer.json
 server/.devcontainer/devcontainer.json
+server/target/*
+.ccls-cache/*
