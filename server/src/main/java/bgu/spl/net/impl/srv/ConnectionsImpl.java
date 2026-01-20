@@ -30,6 +30,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
             nextClientId   = new AtomicInteger();
     }
 
+    // TODO: Add automatic message id generation
     public boolean send(int connectionId, T msg) {
         Integer cId =  subsIdTocId.get(connectionId);
         if (cId == null) return false;
@@ -45,16 +46,17 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public void send(String channel, T msg) {
         ConcurrentLinkedQueue<Integer> subIds = channelTosubId.get(channel);
 
-        if (subIds == null)
-            return;
+        if (subIds == null) return;
 
-        subIds.removeIf(x -> x == null);
+        subIds.removeIf(x -> !subsIdTocId.containsKey(x));
 
         for (int id : subIds)
             send(id, msg);
     }
 
+    // FIXME: doesn't unsubscribe the client from all topics
     public void disconnect(int clientId) {
+        // FIXME: Remove all subscriptions for this client
         cIdtoHandlers.remove(clientId);
     }
 
@@ -67,9 +69,13 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public void subscribe(int cId, int subId, String topic) {
+    public boolean subscribe(int cId, int subId, String topic) {
+        if (subsIdTocId.containsKey(subId))
+            return false;
+
         subsIdTocId.put(subId, cId);
         channelTosubId.putIfAbsent(topic, new ConcurrentLinkedQueue<>()).add(subId);
+        return true;
     }
 
     @Override
