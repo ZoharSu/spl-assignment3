@@ -10,6 +10,7 @@ import bgu.spl.net.srv.Connections;
 
 // PLAN: there's 2 types of id's in Connections, subscriptionID and clientID
 // Channel Names ---hash--> SubscriptionIds ---hash--> ClientIds ---hash--> Handlers
+// TODO: Should this class be involved with login/pass verification and database?
 
 public class ConnectionsImpl<T> implements Connections<T> {
     private ConcurrentHashMap<Integer, Integer> subsIdTocId;
@@ -49,8 +50,8 @@ public class ConnectionsImpl<T> implements Connections<T> {
                 send(id, msg);
     }
 
-    public void disconnect(int connectionId) {
-        subsIdTocId.remove(connectionId);
+    public void disconnect(int clientId) {
+        cIdtoHandlers.remove(clientId);
     }
 
     @Override
@@ -64,7 +65,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
     @Override
     public void subscribe(int cId, int subId, String topic) {
         subsIdTocId.put(subId, cId);
-        channelTosubId.get(topic).add(subId);
+        channelTosubId.putIfAbsent(topic, new ConcurrentLinkedQueue<>()).add(subId);
     }
 
     @Override
@@ -72,5 +73,26 @@ public class ConnectionsImpl<T> implements Connections<T> {
         ConcurrentLinkedQueue<Integer> clients = channelTosubId.get(topic);
 
         return clients != null && clients.contains(cId);
+    }
+
+    @Override
+    public void unsubscribe(int subId) {
+        Integer cId = subsIdTocId.remove(subId);
+        if (cId != null) {
+            // FIXME: Should we add another map or something to optimize this?
+            for (String topic : channelTosubId.keySet()) {
+                ConcurrentLinkedQueue<Integer> subs = channelTosubId.get(topic);
+                subs.remove(subId);
+                if (subs.isEmpty()) {
+                    channelTosubId.remove(topic);
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean connect(String login, String pass) {
+        // TODO: verify login and pass with database?
+        return true;
     }
 }
