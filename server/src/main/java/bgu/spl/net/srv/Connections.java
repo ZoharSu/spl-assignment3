@@ -12,5 +12,9 @@ public interface Connections<T> {
 
     void subscribe(int cId, int subId, String topic);
 
+    void unsubscribe(int subId);
+
     boolean isSubscribed(int cId, String topic);
+
+    boolean connect(String login, String pass);
 }

@@ -3,7 +3,7 @@ package bgu.spl.net.impl.stomp;
 class StompParser {
     public MessageType t;
     public Integer  id      = null;
-    public String   reciept = null;
+    public String   receipt = null;
     public String   dest    = null;
     public String   body    = null;
     public String   host    = null;
@@ -33,6 +33,9 @@ class StompParser {
     }
 
     private void parseHeadersAndBody(String msg) {
+        // TODO: make sure we get the receipt header before throwing exception
+        // I actually don't know the level we need to get into in order
+        // to get that header
         // msg contains headers and body only
         int eol = msg.indexOf("\n");
         int loc = 0;
@@ -57,8 +60,8 @@ class StompParser {
                 dest = value;
             else if (key.equals("id") && id == null)
                 id = parseInt(value);
-            else if (key.equals("receipt") && reciept == null)
-                reciept = value;
+            else if (key.equals("receipt") && receipt == null)
+                receipt = value;
             else if (key.equals("host") && host == null)
                 host = value;
             else if (key.equals("login") && login == null)
@@ -120,7 +123,7 @@ class StompParser {
                     throw new IllegalArgumentException("Invalid UNSUBSCRIBE headers");
                 break;
             case DISCONNECT:
-                if (reciept == null || dest != null || id != null || host != null
+                if (receipt == null || dest != null || id != null || host != null
                     || login != null || pass != null || ver != null)
                     throw new IllegalArgumentException("Invalid DISCONNECT headers");
                 break;

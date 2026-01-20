@@ -47,7 +47,6 @@ public abstract class BaseServer<T> implements Server<T> {
                         encdecFactory.get(),
                         protocol);
 
-                // TODO: extract cid generation into here
                 int cid = connections.register(handler);
                 protocol.start(cid, connections);
 

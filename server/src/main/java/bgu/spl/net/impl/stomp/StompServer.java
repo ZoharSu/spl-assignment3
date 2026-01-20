@@ -1,13 +1,12 @@
 package bgu.spl.net.impl.stomp;
 
-import bgu.spl.net.impl.echo.LineMessageEncoderDecoder;
 import bgu.spl.net.srv.Server;
 
 public class StompServer {
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.out.println("Arguments: <port> {tcp | reactor}");
+            System.out.println("Arguments: <port> {tpc | reactor}");
             return;
         }
 
@@ -17,16 +16,16 @@ public class StompServer {
             Server.threadPerClient(
                     port, //port
                     StompProtocol::new, //protocol factory
-                    LineMessageEncoderDecoder::new //message encoder decoder factory
+                    StompMessageEncoderDecoder::new //message encoder decoder factory
             ).serve();
         else if (args[1] == "reactor")
             Server.reactor(
                     Runtime.getRuntime().availableProcessors(),
                     port, //port
                     StompProtocol::new, //protocol factory
-                    LineMessageEncoderDecoder::new //message encoder decoder factory
+                    StompMessageEncoderDecoder::new //message encoder decoder factory
             ).serve();
         else
-            System.out.println("Arguments: <port> {tcp | reactor}");
+            System.out.println("Arguments: <port> {tpc | reactor}");
     }
 }
