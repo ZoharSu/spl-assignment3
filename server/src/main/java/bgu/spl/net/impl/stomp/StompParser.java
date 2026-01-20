@@ -1,41 +1,66 @@
 package bgu.spl.net.impl.stomp;
 
 class StompParser {
-    public MessageType t;
-    public Integer  id      = null;
-    public String   receipt = null;
-    public String   dest    = null;
-    public String   body    = null;
-    public String   host    = null;
-    public String   login   = null;
-    public String   pass    = null;
-    public String   ver     = null;
+    public MessageType  t       = null;
+    public Integer      id      = null;
+    public String       ver     = null;
+    public String       dest    = null;
+    public String       body    = null;
+    public String       host    = null;
+    public String       pass    = null;
+    public String       login   = null;
+    public String       errMsg  = null;
+    public String       receipt = null;
+    public String       message = null;
 
     public enum MessageType {
         CONNECT, SEND, SUBSCRIBE, UNSUBSCRIBE, DISCONNECT
     }
 
-    // TODO: should change to "malformed frame recieved"?
-    public StompParser(String msg) throws IllegalArgumentException {
-        if (msg == null || msg.indexOf("\0") != msg.length() - 1)
-            throw new IllegalArgumentException("Message must end with null character");
+    public StompParser(String msg) {
+        message = msg;
+        if (message == null) {
+            errMsg = "Message can't be null";
+            return;
+        }
 
-        int eol = msg.indexOf("\n");
-        if (eol == -1)
-            throw new IllegalArgumentException("Single line message");
+        int eol = message.indexOf("\n");
+        if (eol == -1) {
+            errMsg = "Single line message";
+            return;
+        }
 
-        parseType(msg.substring(0, eol));
+        if (!parseType(message.substring(0, eol))) {
+            illegal("Invalid message type");
+            return;
+        }
 
         // parse headers and body
-        parseHeadersAndBody(msg.substring(eol+1));
+        parseHeadersAndBody(message.substring(eol+1));
+        if (!islegal()) return;
 
         ensureValid();
     }
 
+    private void illegal(String reason) {
+        errMsg = reason;
+        
+        if (message == null) return;
+
+        // Extract receipt header
+        String[] parts  = message.split("\nreceipt:");
+        for (int i = 1; i < parts.length; i++) {
+            int eol = parts[i].indexOf("\n");
+            if (eol == -1 && !parts[i].isEmpty()) { receipt = parts[i]; break; }
+            if (eol > 0) { receipt = parts[i].substring(0, eol); break; }
+        }
+    }
+
+    public boolean islegal() {
+        return errMsg == null;
+    }
+
     private void parseHeadersAndBody(String msg) {
-        // TODO: make sure we get the receipt header before throwing exception
-        // I actually don't know the level we need to get into in order
-        // to get that header
         // msg contains headers and body only
         int eol = msg.indexOf("\n");
         int loc = 0;
@@ -49,17 +74,25 @@ class StompParser {
                 return;
             }
 
+            // FIXME: what about headers with ':' in the value?
             String[] parts = msg.substring(loc, eol).split(":");
-            if (parts.length != 2)
-                throw new IllegalArgumentException("Illegal header structure");
+            if (parts.length != 2) {
+                illegal("Illegal header structure");
+                return;
+            }
 
             String key = parts[0];
             String value = parts[1];
 
             if (key.equals("destination") && dest == null)
                 dest = value;
-            else if (key.equals("id") && id == null)
+            else if (key.equals("id") && id == null) {
                 id = parseInt(value);
+                if (id == null) {
+                    illegal("Invalid header");
+                    return;
+                }
+            }
             else if (key.equals("receipt") && receipt == null)
                 receipt = value;
             else if (key.equals("host") && host == null)
@@ -70,14 +103,17 @@ class StompParser {
                 pass = value;
             else if (key.equals("accept-version") && ver == null)
                 ver = value;
-            else throw new IllegalArgumentException("Invalid Header");
+            else {
+                illegal("Invalid header");
+                return;
+            }
 
             loc = eol + 1;
             eol = msg.indexOf("\n", loc);
         }
 
         if (body == null)
-            throw new IllegalArgumentException("Illegal header structure");
+            illegal("Malformed frame recieved");
 
     }
 
@@ -85,47 +121,49 @@ class StompParser {
         try {
             return Integer.parseInt(string);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid integer");
+            return null;
         }
     }
 
-    private void parseType(String line) throws IllegalArgumentException {
+    private boolean parseType(String line) {
              if (line.equals("CONNECT"))        t = MessageType.CONNECT;
         else if (line.equals("SEND"))           t = MessageType.SEND;
         else if (line.equals("SUBSCRIBE"))      t = MessageType.SUBSCRIBE;
         else if (line.equals("UNSUBSCRIBE"))    t = MessageType.UNSUBSCRIBE;
         else if (line.equals("DISCONNECT"))     t = MessageType.DISCONNECT;
-        else throw new IllegalArgumentException("Invalid message type");
+        else return false;
+
+        return true;
     }
 
-    private void ensureValid() throws IllegalArgumentException {
+    private void ensureValid() {
         switch (t) {
             case CONNECT:
                 if (host == null || !host.equals("stomp.cs.bgu.ac.il")
-                    || login == null || pass == null || ver == null || ver != "1.2"
+                    || login == null || pass == null || ver == null
+                    || !ver.equals("1.2") || !body.isEmpty()
                     || dest != null || id != null)
-                    throw new IllegalArgumentException("Invalid CONNECT headers");
+                    illegal("Invalid CONNECT headers");
                 break;
             case SEND:
-                // TODO: can body can be empty?
-                if (dest == null || host != null || id != null || login != null
-                    || pass != null || ver != null)
-                    throw new IllegalArgumentException("Invalid SEND headers");
+                if (dest == null || body.isEmpty() || host != null || id != null
+                    || login != null || pass != null || ver != null)
+                    illegal("Invalid SEND headers");
                 break;
             case SUBSCRIBE:
-                if (dest == null || id == null || host != null || login != null
-                    || pass != null || ver != null)
-                    throw new IllegalArgumentException("Invalid SUBSCRIBE headers");
+                if (dest == null || id == null || !body.isEmpty() || host != null
+                    || login != null || pass != null || ver != null)
+                    illegal("Invalid SUBSCRIBE headers");
                 break;
             case UNSUBSCRIBE:
-                if (id == null || dest != null || host != null || login != null
-                    || pass != null || ver != null)
-                    throw new IllegalArgumentException("Invalid UNSUBSCRIBE headers");
+                if (id == null || !body.isEmpty() || dest != null || host != null
+                    || login != null || pass != null || ver != null)
+                    illegal("Invalid UNSUBSCRIBE headers");
                 break;
             case DISCONNECT:
-                if (receipt == null || dest != null || id != null || host != null
-                    || login != null || pass != null || ver != null)
-                    throw new IllegalArgumentException("Invalid DISCONNECT headers");
+                if (receipt == null || !body.isEmpty() || dest != null || id != null
+                    || host != null || login != null || pass != null || ver != null)
+                    illegal("Invalid DISCONNECT headers");
                 break;
         }
     }
