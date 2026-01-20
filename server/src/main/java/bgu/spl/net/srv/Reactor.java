@@ -107,8 +107,7 @@ public class Reactor<T> implements Server<T> {
                 protocol,
                 clientChan,
                 this);
-        // FIXME: this fucked up on so many levels
-        //        we should move the cid generation to here. :/
+
         int cid = connections.register(handler);
         protocol.start(cid, connections);
 
