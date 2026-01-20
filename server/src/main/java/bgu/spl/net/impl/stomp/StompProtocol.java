@@ -74,6 +74,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         if (receipt != null && !receipt.isEmpty())
             msg.append("receipt-id:").append(receipt).append("\n");
 
+        msg.append("\n");
         send(msg.toString());
     }
 
@@ -93,7 +94,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
         connections.disconnect(clientId);
         StringBuilder msg = new StringBuilder();
-        msg.append("RECEIPT\nreceipt-id:").append(receipt).append("\n\n\0");
+        msg.append("RECEIPT\nreceipt-id:").append(receipt).append("\n\n");
         send(msg.toString());
     }
 
@@ -121,8 +122,9 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         if (receipt != null && !receipt.isEmpty())
             error.append("receipt-id:").append(receipt).append("\n");
 
+        error.append("\n");
         if (msg != null && !msg.isEmpty())
-            error.append("\nThe message:\n-----\n").append(msg).append("\n-----");
+            error.append("The message:\n-----\n").append(msg).append("\n-----");
 
         send(error.toString());
         shouldTerminate = true;
