@@ -1,5 +1,7 @@
 package bgu.spl.net.impl.stomp;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
@@ -8,9 +10,12 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     private Connections<String> connections;
     private ConnectionHandler<String> handler;
-    private boolean shouldTerminate = false;
-    private int clientId;
-    private boolean loggedIn = false;
+    
+    private volatile boolean shouldTerminate = false;
+    private volatile boolean loggedIn = false;
+    private volatile int clientId;
+
+    private static final AtomicInteger nextMessageId = new AtomicInteger(0);
 
     @Override
     public boolean shouldTerminate() {
@@ -25,14 +30,13 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     @Override
     public void process(String message) {
+        // protocol should refuse any work if terminated
+        if (shouldTerminate()) return;
 
-        // TODO: change p to not throw exception on invalid message, but have
-        // an isLegal method
-        StompParser p;
+        StompParser p = new StompParser(message);
 
-        try { p = new StompParser(message); }
-        catch (IllegalArgumentException e) {
-            sendError(message, null, e.getMessage());
+        if (!p.islegal()) {
+            sendError(message, p.receipt, p.errMsg);
             return;
         }
 
@@ -42,40 +46,83 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             return;
         }
 
-        if (p.isSend() && !connections.isSubscribed(clientId, p.dest))
+        if (p.isSend() && !connections.isSubscribed(clientId, p.dest)) {
             sendError(message, p.receipt, "You cannot send a message in a topic which you're not subscribed to");
+            return;
+        }
 
         switch (p.t) {
             case SUBSCRIBE:
-                connections.subscribe(clientId, p.id, p.dest); break;
+                handleSubscribe(p); break;
             case UNSUBSCRIBE:
-                connections.unsubscribe(p.id); break;
+                handleUnsubscribe(p); break;
             case SEND:
-                connections.send(p.dest, p.body); break;
+                handleSend(p); break;
             case DISCONNECT:
-                handleDisconnect(p.receipt); break;
+                handleDisconnect(p); break;
             case CONNECT:
-                handleConnect(p.login, p.pass, p.receipt); break;
+                handleConnect(p); break;
         }
     }
 
-    private void handleConnect(String login, String pass, String receipt) {
+    private void sendReceipt(String receipt) {
+        if (receipt == null || receipt.isEmpty()) return;
+
+        StringBuilder msg = new StringBuilder();
+        msg.append("RECEIPT\nreceipt-id:").append(receipt).append("\n\n");
+        send(msg.toString());
+    }
+
+    private void handleSubscribe(StompParser p) {
+        if (connections.subscribe(clientId, p.id, p.dest)) {
+            sendReceipt(p.receipt);
+            return;
+        }
+
+        sendError(p.message, p.receipt, "Subscription id already in use");
+    }
+
+    private void handleUnsubscribe(StompParser p) {
+        // FIXME: What should we do here?
+        connections.unsubscribe(p.id);
+        sendReceipt(p.receipt);
+    }
+
+    private void handleSend(StompParser p) {
+        StringBuilder msg = new StringBuilder();
+        msg.append("MESSAGE\n");
+        msg.append("destination:").append(p.dest).append("\n");
+        msg.append("message-id:").append(nextMessageId.getAndIncrement());
+        msg.append("\n\n").append(p.body).append("\n");
+
+        connections.send(p.dest, msg.toString());
+        sendReceipt(p.receipt);
+    }
+
+    private void handleDisconnect(StompParser p) {
+        if (!isLoggedIn()) {
+            sendError(p.message, p.receipt, "Can't disconnect while logged out");
+            return;
+        }
+
+        connections.disconnect(clientId);
+        sendReceipt(p.receipt);
+    }
+
+    private void handleConnect(StompParser p) {
         // TODO: check username and password with database
-        loggedIn = connections.connect(login, pass);
+        loggedIn = connections.connect(p.login, p.pass);
 
         if (!loggedIn) {
-            sendError(null, receipt, "Wrong username or password");
+            sendError(p.message, p.receipt, "Wrong login or passcode");
             return;
         }
 
         StringBuilder msg = new StringBuilder();
-        msg.append("CONNECTED\nversion:1.2\n");
+        msg.append("CONNECTED\nversion:1.2\n\n");
 
-        if (receipt != null && !receipt.isEmpty())
-            msg.append("receipt-id:").append(receipt).append("\n");
-
-        msg.append("\n");
         send(msg.toString());
+        sendReceipt(p.receipt);
     }
 
     private void send(String msg) {
@@ -86,17 +133,6 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         return loggedIn;
     }
 
-    private void handleDisconnect(String receipt) {
-        if (!isLoggedIn()) {
-            sendError(null, receipt, "Can't disconnect while logged out");
-            return;
-        }
-
-        connections.disconnect(clientId);
-        StringBuilder msg = new StringBuilder();
-        msg.append("RECEIPT\nreceipt-id:").append(receipt).append("\n\n");
-        send(msg.toString());
-    }
 
     @Override
     public String applyId(String msg, int id) {
@@ -105,14 +141,10 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             return "";
 
         String command = msg.substring(0, lineEnd);
-        if (command == "ERROR" || command == "RECIEPT")
-            return msg;
+        if (command.equals("MESSAGE"))
+            return command + "\n" + "subscription:" + id + msg.substring(lineEnd) ;
 
-        int null_i = msg.indexOf('\u0000');
-        if (null_i != -1)
-            msg = msg.substring(0, null_i);
-
-        return msg + "\nsubscription:" + id + '\u0000';
+        return msg;
     }
 
     private void sendError(String msg, String receipt, String what) {
@@ -123,10 +155,10 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             error.append("receipt-id:").append(receipt).append("\n");
 
         error.append("\n");
-        if (msg != null && !msg.isEmpty())
+        if (msg != null)
             error.append("The message:\n-----\n").append(msg).append("\n-----");
 
-        send(error.toString());
+        handler.sendAndClose(error.toString());
         shouldTerminate = true;
     }
 
