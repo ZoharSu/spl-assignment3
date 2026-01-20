@@ -53,15 +53,27 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
     @Override
     public void send(T msg) {
-        if (sock.isClosed()) return;
+        synchronized(out) {
+            try {
+                if (!connected || protocol.shouldTerminate()) return;
 
-        try {
-            synchronized(out) {
                 out.write((encdec.encode(msg)));
                 out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void sendAndClose(T msg) {
+        synchronized(out) {
+            send(msg);
+            try {
+                close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 }
