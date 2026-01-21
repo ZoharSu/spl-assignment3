@@ -3,7 +3,6 @@ package bgu.spl.net.srv;
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.StompMessagingProtocol;
 import bgu.spl.net.impl.srv.ConnectionsImpl;
-import bgu.spl.net.impl.stomp.StompProtocol;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

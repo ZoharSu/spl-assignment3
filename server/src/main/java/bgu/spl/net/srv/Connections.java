@@ -8,6 +8,8 @@ public interface Connections<T> {
 
     void disconnect(int connectionId);
 
+    boolean sendAndClose(int connectionId, T msg);
+
     int register(ConnectionHandler<T> handler);
 
     boolean subscribe(int cId, int subId, String topic);

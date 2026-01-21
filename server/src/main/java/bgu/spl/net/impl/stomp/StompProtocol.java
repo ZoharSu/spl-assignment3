@@ -3,13 +3,11 @@ package bgu.spl.net.impl.stomp;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import bgu.spl.net.api.StompMessagingProtocol;
-import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 public class StompProtocol implements StompMessagingProtocol<String> {
 
     private Connections<String> connections;
-    private ConnectionHandler<String> handler;
     
     private volatile boolean shouldTerminate = false;
     private volatile boolean loggedIn = false;
@@ -126,7 +124,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     }
 
     private void send(String msg) {
-        handler.send(msg);
+        connections.send(clientId, msg);
     }
 
     private boolean isLoggedIn() {
@@ -158,7 +156,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         if (msg != null)
             error.append("The message:\n-----\n").append(msg).append("\n-----");
 
-        handler.sendAndClose(error.toString());
+        connections.sendAndClose(clientId, error.toString());
         shouldTerminate = true;
     }
 
