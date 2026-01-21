@@ -30,15 +30,21 @@ public class ConnectionsImpl<T> implements Connections<T> {
             nextClientId   = new AtomicInteger();
     }
 
-    // TODO: Add automatic message id generation
     public boolean send(int connectionId, T msg) {
-        Integer cId =  subsIdTocId.get(connectionId);
-        if (cId == null) return false;
-
-        ConnectionHandler<T> handler = cIdtoHandlers.get(cId);
+        ConnectionHandler<T> handler = cIdtoHandlers.get(connectionId);
         if (handler == null) return false;
 
-        handler.send(appendId.apply(msg, connectionId));
+        handler.send(msg);
+
+        return true;
+    }
+
+    public boolean sendAndClose(int connectionId, T msg) {
+        ConnectionHandler<T> handler = cIdtoHandlers.get(connectionId);
+        if (handler == null) return false;
+
+        handler.sendAndClose(msg);
+        disconnect(connectionId);
 
         return true;
     }
@@ -50,14 +56,23 @@ public class ConnectionsImpl<T> implements Connections<T> {
 
         subIds.removeIf(x -> !subsIdTocId.containsKey(x));
 
-        for (int id : subIds)
-            send(id, msg);
+        for (int subId : subIds)
+            sendWithId(subId, msg);
     }
 
-    // FIXME: doesn't unsubscribe the client from all topics
+    private void sendWithId(int subscriptionId, T msg) {
+        Integer cId =  subsIdTocId.get(subscriptionId);
+        if (cId == null) return;
+
+        ConnectionHandler<T> handler = cIdtoHandlers.get(cId);
+        if (handler == null) return;
+
+        handler.send(appendId.apply(msg, subscriptionId));
+    }
+
     public void disconnect(int clientId) {
-        // FIXME: Remove all subscriptions for this client
         cIdtoHandlers.remove(clientId);
+        subsIdTocId.values().removeIf(cId -> cId == clientId);
     }
 
     @Override
@@ -88,16 +103,16 @@ public class ConnectionsImpl<T> implements Connections<T> {
     @Override
     public void unsubscribe(int subId) {
         Integer cId = subsIdTocId.remove(subId);
-        if (cId != null) {
-            // FIXME: Should we add another map or something to optimize this?
-            for (String topic : channelTosubId.keySet()) {
-                ConcurrentLinkedQueue<Integer> subs = channelTosubId.get(topic);
-                subs.remove(subId);
-                if (subs.isEmpty()) {
-                    channelTosubId.remove(topic);
-                }
-            }
-        }
+        // if (cId != null) {
+        //     // FIXME: Should we add another map or something to optimize this?
+        //     for (String topic : channelTosubId.keySet()) {
+        //         ConcurrentLinkedQueue<Integer> subs = channelTosubId.get(topic);
+        //         subs.remove(subId);
+        //         if (subs.isEmpty()) {
+        //             channelTosubId.remove(topic);
+        //         }
+        //     }
+        // }
     }
 
     @Override
