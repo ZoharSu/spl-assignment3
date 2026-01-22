@@ -7,22 +7,32 @@
 
 void listener_loop(StompProtocol *p) {
     while (p->is_active()) {
-        std::string frame;
-        if (p->handler->getFrameAscii(frame, '\0'))
-            p->process(frame);
+        StompParser msg = p->recv();
+        if (msg.type != ERROR)
+            p->process(msg);
         else
             std::cout << "TODO";
     }
 }
 
-void handle_login(StompProtocol& p, Command& command) {
-    std::vector<std::pair<std::string, std::string>> headers = {
-        {"accept-version", "1.2"},
-        {"host", "stomp.cs.bgu.ac.il"},
-        {"login", command.username},
-        {"passcode", command.password}
-    };
-    p.send("CONNECT", headers);
+bool handle_login(StompProtocol& p, Command& command) {
+    StompParser msg = p.login(command.username, command.password);
+
+    if (msg.type == ERROR) {
+        if (msg.srvErrMsg == "Socket error: connection error") {
+            std::cout << "Could not connect to server" << std::endl;
+        }
+        else if (msg.srvErrMsg == "Client already logged in") {
+            std::cout << "The client is already logged in, log out before trying again" << std::endl;
+        }
+        else if (msg.srvErrMsg == "Wrong password") {
+            std::cout << "Wrong password" << std::endl;
+        }
+
+        return false;
+    } else std::cout << "Login successful" << std::endl;
+
+    return true;
 }
 
 std::string to_string(Event& e) {
@@ -59,13 +69,10 @@ void handle_report(StompProtocol& p, Command& command) {
 
     for (Event& e : events.events) {
         std::string body = "user: " + p.username + '\n' + to_string(e);
-        p.send("SEND", {{"destination", e.get_name()}}, body);
+        p.send(e.get_name(), body);
     }
 }
 
-void handle_logout(StompProtocol& p, Command& command) {
-    p.send("LOGOUT", {{"reciept", "77"}}); // TODO: next reciept
-}
 
 int main(int argc, char *argv[]) {
     StompProtocol p;
@@ -79,17 +86,20 @@ int main(int argc, char *argv[]) {
 
         if (command.type == LOGIN && !p.is_active()) {
             p.connect(command.hostname, command.port);
+            p.login(command.username, command.password);
             // send username + password, await answer
-            bool answer = true;
-            if (answer)
+            bool ok = handle_login(p, command);
+            if (ok)
                 listener = std::thread(listener_loop, &p);
         }
         else if (!p.is_active())
             std::cout << "you must log-in before doing any actions" << std::endl;
+        else if (command.type == JOIN) p.subscribe(command.game_name);
+        else if (command.type == EXIT) p.unsubscribe(command.game_name);
         else if (command.type == REPORT) handle_report(p, command);
 
         else if (command.type == LOGOUT) {
-            // p.logout()
+            p.disconnect();
             listener.join();
         }
     }
