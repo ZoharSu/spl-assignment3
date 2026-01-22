@@ -1,9 +1,11 @@
 #include "../include/StompCommand.h"
-#include <boost/algorithm/string.hpp>
+#include "../include/utils.h"
 
-Command::Command(std::string& line) {
-    std::vector<std::string> args;
-    boost::split(args, line, ' ');
+Command::Command(std::string& line) :
+    error{}, type{}, game_name{}, filename{},
+    port{}, hostname{}, username{}, password{}
+ {
+    std::vector<std::string> args = split(line, ' ');
 
     if (args.size() == 0) return; // TODO: error
     if (args[0] == "logout")
@@ -33,8 +35,7 @@ Command::Command(std::string& line) {
 void Command::parseLogin(std::vector<std::string> args) {
     if (args.size() != 4) return; // TODO: error
 
-    std::vector<std::string> host;
-    boost::split(host, args[1], ':');
+    std::vector<std::string> host = split(args[1], ':');
 
     if (host.size() != 2) return; // TODO: error
 
