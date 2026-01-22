@@ -2,6 +2,7 @@
 
 #include "../include/ConnectionHandler.h"
 #include <memory>
+#include <utility>
 
 // TODO: implement the STOMP protocol
 class StompProtocol
@@ -13,9 +14,13 @@ public:
 
     void connect(std::string hostname, short port);
 
-    void process(std::string& msg);
+    void process(const std::string& msg);
+
+    void send(std::string command,
+              std::vector<std::pair<std::string, std::string>> headers,
+              std::string body);
 
     void reset();
 
-    bool is_active();
+    bool is_active() const;
 };
