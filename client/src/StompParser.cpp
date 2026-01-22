@@ -3,7 +3,7 @@
 #include <string>
 #include <iostream>
 
-StompParser::StompParser(std::string& msg) :
+StompParser::StompParser(const std::string& msg) :
     type(), subId(-1), msgId(-1), dest(""), receipt(""),
     srvErrMsg(""), body(""), isLegal(false) {
 
