@@ -19,5 +19,6 @@ class StompParser {
         std::string body;
         bool isLegal;
 
+        StompParser();
         StompParser(const std::string& msg);
 };

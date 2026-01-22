@@ -1,7 +1,10 @@
 #include "../include/StompParser.h"
 #include <vector>
 #include <string>
-#include <iostream>
+
+StompParser::StompParser() :
+    type(ERROR), subId(-1), msgId(-1), dest(""), receipt(""),
+    srvErrMsg(""), body(""), isLegal(false) {};
 
 StompParser::StompParser(const std::string& msg) :
     type(), subId(-1), msgId(-1), dest(""), receipt(""),
