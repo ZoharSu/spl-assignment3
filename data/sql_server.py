@@ -11,10 +11,28 @@ the methods below.
 import socket
 import sys
 import threading
+import sqlite3
+import atexit
+import os
 
 
 SERVER_NAME = "STOMP_PYTHON_SQL_SERVER"  # DO NOT CHANGE!
 DB_FILE = "stomp_server.db"              # DO NOT CHANGE!
+_conn = sqlite3.connect(DB_FILE)
+
+# NOTE:
+# Deleting database as said in forum.
+# Otherwise, it creates problems on the java side with login.
+def delete_db_file():
+    if os.path.exists(DB_FILE):
+        try:
+            os.remove(DB_FILE)
+        except:
+            print("Failed to remove previous database file")
+
+def _close_db():
+    _conn.commit()
+    _conn.close()
 
 
 def recv_null_terminated(sock: socket.socket) -> str:
@@ -30,16 +48,66 @@ def recv_null_terminated(sock: socket.socket) -> str:
 
 
 def init_database():
-    pass
+    atexit.register(_close_db)
+    create_tables()
 
+def create_tables():
+    execute_sql_command("""
+    CREATE TABLE users (
+        username TEXT PRIMARY KEY NOT NULL,
+        password TEXT NOT NULL,
+        registration_date DATETIME NOT NULL
+                        
+    );
 
-def execute_sql_command(sql_command: str) -> str:
-    return "done"
+    CREATE INDEX idx_users_registration_date ON users(registration_date);
+                        
+    CREATE TABLE login_history (
+        username TEXT NOT NULL,
+        login_time DATETIME NOT NULL,
+        logout_time DATETIME,
 
+        PRIMARY KEY(username, login_time),
+        FOREIGN KEY(username) REFERENCES users(username)
+    );
+
+    CREATE TABLE file_tracking (
+        username TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        upload_time DATETIME NOT NULL,
+        game_channel TEXT NOT NULL,
+
+        PRIMARY KEY(username, upload_time),
+        FOREIGN KEY(username) REFERENCES users(username)
+    );
+    """)
+
+def execute_sql_command(sql_command: str):
+    try:
+        _conn.executescript(sql_command)
+    except sqlite3.Error as e:
+        print(f"Error executing sql command: {e}")
 
 def execute_sql_query(sql_query: str) -> str:
-    return "done"
+    cursor = _conn.cursor()
+    ret = None
+    try:
+        cursor.execute(sql_query)
+        ret = format_query_result(cursor.fetchall())
+    except sqlite3.Error as e:
+        print(f"Error executing sql query: {e}")
+        ret = "FAILURE"
 
+    return ret
+
+
+def format_query_result(result):
+    ret = []
+    for row in result:
+        string_row = [str(field) for field in row]
+        ret.append(", ".join(string_row))
+    
+    return "SUCCESS|" + "|".join(ret)
 
 def handle_client(client_socket: socket.socket, addr):
     print(f"[{SERVER_NAME}] Client connected from {addr}")
@@ -50,10 +118,16 @@ def handle_client(client_socket: socket.socket, addr):
             if message == "":
                 break
 
+            # TODO: REMOVE
             print(f"[{SERVER_NAME}] Received:")
             print(message)
 
-            client_socket.sendall(b"done\0")
+            if message.startswith("SELECT"):
+                result = execute_sql_query(message)
+                if result:
+                    client_socket.sendall(result.encode('utf-8') + b"\0")
+            else:
+                execute_sql_command(message)
 
     except Exception as e:
         print(f"[{SERVER_NAME}] Error handling client {addr}: {e}")
@@ -94,6 +168,7 @@ def start_server(host="127.0.0.1", port=7778):
 
 
 if __name__ == "__main__":
+    init_database()
     port = 7778
     if len(sys.argv) > 1:
         raw_port = sys.argv[1].strip()
