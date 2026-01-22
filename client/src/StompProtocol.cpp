@@ -1,12 +1,14 @@
 #include "../include/StompProtocol.h"
 #include "../include/StompParser.h"
 #include <memory>
+#include <string>
 
 StompProtocol::StompProtocol() : handler() {}
 
 void StompProtocol::connect(std::string hostname, short port) {
     handler.reset(new ConnectionHandler(hostname, port));
     handler->connect();
+    next_reciept = 0;
 }
 
 
@@ -33,5 +35,17 @@ bool StompProtocol::is_active() const {
     return false;
 }
 
-void StompProtocol::process(const std::string& msg) {
+void StompProtocol::await_answer(std::string reciept) {
+    bool& recieved = recieptMap[reciept];
+
+    // TODO: busy-waiting is bad for your health, please fix
+    while (!recieved);
+}
+
+std::string StompProtocol::get_reciept() {
+    return std::to_string(this->next_reciept);
+}
+
+void StompProtocol::process(const StompParser& p) {
+    if (p.receipt != "") recieptMap[p.receipt] = true;
 }
