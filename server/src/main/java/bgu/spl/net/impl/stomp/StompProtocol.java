@@ -11,9 +11,9 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     
     private volatile boolean shouldTerminate = false;
     private volatile boolean loggedIn = false;
-    private volatile int clientId;
+    private volatile int connectionId;
 
-    private static final AtomicInteger nextMessageId = new AtomicInteger(0);
+    private static final AtomicInteger nextMessageId = new AtomicInteger();
 
     @Override
     public boolean shouldTerminate() {
@@ -22,7 +22,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     @Override
     public void start(int connectionId, Connections<String> connections) {
-        this.clientId = connectionId;
+        this.connectionId = connectionId;
         this.connections = connections;
     }
 
@@ -39,12 +39,11 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         }
 
         if (!p.isConnect() && !isLoggedIn()) {
-            connections.disconnect(clientId);
             sendError(message, p.receipt, "You are not logged in");
             return;
         }
 
-        if (p.isSend() && !connections.isSubscribed(clientId, p.dest)) {
+        if (p.isSend() && !connections.isSubscribed(connectionId, p.dest)) {
             sendError(message, p.receipt, "You cannot send a message in a topic which you're not subscribed to");
             return;
         }
@@ -72,18 +71,23 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     }
 
     private void handleSubscribe(StompParser p) {
-        if (connections.subscribe(clientId, p.id, p.dest)) {
+        if (connections.subscribe(connectionId, p.id, p.dest)) {
             sendReceipt(p.receipt);
             return;
         }
 
-        sendError(p.message, p.receipt, "Subscription id already in use");
+        // Already subscribed or subscription id already in use.
+        sendError(p.message, p.receipt, "Already subscribed or subscription id already in use");
     }
 
     private void handleUnsubscribe(StompParser p) {
-        // FIXME: What should we do here?
-        connections.unsubscribe(p.id);
-        sendReceipt(p.receipt);
+        if (connections.unsubscribe(connectionId, p.id)) {
+            sendReceipt(p.receipt);
+            return;
+        }
+
+        // Either not subscribed, or trying to unsubscribe another client.
+        sendError(p.message, p.receipt, "Either not subscribed, or trying to unsubscribe another client");
     }
 
     private void handleSend(StompParser p) {
@@ -103,13 +107,13 @@ public class StompProtocol implements StompMessagingProtocol<String> {
             return;
         }
 
-        connections.disconnect(clientId);
+        loggedIn = false;
         sendReceipt(p.receipt);
+        connections.disconnect(connectionId);
     }
 
     private void handleConnect(StompParser p) {
-        // TODO: check username and password with database
-        loggedIn = connections.connect(p.login, p.pass);
+        loggedIn = connections.connect(connectionId, p.login, p.pass);
 
         if (!loggedIn) {
             sendError(p.message, p.receipt, "Wrong login or passcode");
@@ -124,7 +128,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     }
 
     private void send(String msg) {
-        connections.send(clientId, msg);
+        connections.send(connectionId, msg);
     }
 
     private boolean isLoggedIn() {
@@ -156,7 +160,8 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         if (msg != null)
             error.append("The message:\n-----\n").append(msg).append("\n-----");
 
-        connections.sendAndClose(clientId, error.toString());
+        connections.sendAndClose(connectionId, error.toString());
+        loggedIn = false;
         shouldTerminate = true;
     }
 
