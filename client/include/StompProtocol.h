@@ -10,6 +10,8 @@ class StompProtocol
 public:
     std::unique_ptr<ConnectionHandler> handler;
 
+    std::string username;
+
     StompProtocol();
 
     void connect(std::string hostname, short port);
@@ -18,7 +20,7 @@ public:
 
     void send(std::string command,
               std::vector<std::pair<std::string, std::string>> headers,
-              std::string body);
+              std::string body = "");
 
     void reset();
 
