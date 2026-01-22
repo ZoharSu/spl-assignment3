@@ -19,7 +19,7 @@ StompParser::StompParser(const std::string& msg) :
         line += c;
     }
 
-    if (line.length() > 0)
+    if (!line.empty())
         lines.push_back(line); // push last line
 
     if (lines.empty()) return; // not legal

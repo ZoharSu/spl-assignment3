@@ -1,5 +1,7 @@
 package bgu.spl.net.srv;
 
+import bgu.spl.net.impl.data.LoginStatus;
+
 public interface Connections<T> {
 
     boolean send(int connectionId, T msg);
@@ -18,5 +20,5 @@ public interface Connections<T> {
 
     boolean isSubscribed(int cId, String topic);
 
-    boolean connect(int connectionId, String login, String pass);
+    LoginStatus connect(int connectionId, String login, String pass);
 }

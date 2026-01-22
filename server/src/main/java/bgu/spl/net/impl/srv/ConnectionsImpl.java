@@ -121,8 +121,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public boolean connect(int connectionId, String login, String pass) {
-        LoginStatus status = db.login(connectionId, login, pass);
-        return status == LoginStatus.LOGGED_IN_SUCCESSFULLY || status == LoginStatus.ADDED_NEW_USER;
+    public LoginStatus connect(int connectionId, String login, String pass) {
+        return db.login(connectionId, login, pass);
     }
 }

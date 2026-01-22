@@ -3,6 +3,7 @@ package bgu.spl.net.impl.stomp;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.impl.data.LoginStatus;
 import bgu.spl.net.srv.Connections;
 
 public class StompProtocol implements StompMessagingProtocol<String> {
@@ -113,11 +114,24 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     }
 
     private void handleConnect(StompParser p) {
-        loggedIn = connections.connect(connectionId, p.login, p.pass);
+        LoginStatus status = connections.connect(connectionId, p.login, p.pass);
 
-        if (!loggedIn) {
-            sendError(p.message, p.receipt, "Wrong login or passcode");
-            return;
+        switch (status) {
+            case CLIENT_ALREADY_CONNECTED:
+                sendError(p.message, p.receipt, "Client already connected");
+                return;
+            case ALREADY_LOGGED_IN:
+                sendError(p.message, p.receipt, "User already logged in");
+                return;
+            case WRONG_PASSWORD:
+                sendError(p.message, p.receipt, "Wrong password");
+                return;
+            case ADDED_NEW_USER:
+                loggedIn = true;
+                break;
+            case LOGGED_IN_SUCCESSFULLY:
+                loggedIn = true;
+                break;
         }
 
         StringBuilder msg = new StringBuilder();
