@@ -5,12 +5,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
+import bgu.spl.net.impl.data.Database;
+import bgu.spl.net.impl.data.LoginStatus;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
-
-// PLAN: there's 2 types of id's in Connections, subscriptionID and clientID
-// Channel Names ---hash--> SubscriptionIds ---hash--> ClientIds ---hash--> Handlers
-// TODO: Should this class be involved with login/pass verification and database?
 
 public class ConnectionsImpl<T> implements Connections<T> {
     private ConcurrentHashMap<Integer, Integer> subsIdTocId;
@@ -21,13 +19,15 @@ public class ConnectionsImpl<T> implements Connections<T> {
     private ConcurrentHashMap<String, ConcurrentLinkedQueue<Integer>> channelTosubId;
     private BiFunction<T, Integer, T> appendId;
     private AtomicInteger nextClientId;
+    private final Database db;
 
     public ConnectionsImpl(BiFunction<T, Integer, T> applyId) {
-            appendId       = applyId;
-            subsIdTocId    = new ConcurrentHashMap<>();
-            channelTosubId = new ConcurrentHashMap<>();
-            cIdtoHandlers  = new ConcurrentHashMap<>();
-            nextClientId   = new AtomicInteger();
+            appendId        = applyId;
+            subsIdTocId     = new ConcurrentHashMap<>();
+            channelTosubId  = new ConcurrentHashMap<>();
+            cIdtoHandlers   = new ConcurrentHashMap<>();
+            nextClientId    = new AtomicInteger();
+            db              = Database.getInstance();
     }
 
     public boolean send(int connectionId, T msg) {
@@ -71,8 +71,10 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     public void disconnect(int clientId) {
-        cIdtoHandlers.remove(clientId);
-        subsIdTocId.values().removeIf(cId -> cId == clientId);
+        if (cIdtoHandlers.remove(clientId) != null) {
+            subsIdTocId.values().removeIf(cId -> cId == clientId);
+            db.logout(clientId);
+        }
     }
 
     @Override
@@ -84,40 +86,43 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public boolean subscribe(int cId, int subId, String topic) {
-        if (subsIdTocId.containsKey(subId))
+    public boolean subscribe(int connectionId, int subId, String topic) {
+        // Either already subscribed, or using an existing subId.
+        if (isSubscribed(connectionId, topic) || subsIdTocId.containsKey(subId))
             return false;
 
-        subsIdTocId.put(subId, cId);
+        subsIdTocId.put(subId, connectionId);
         channelTosubId.putIfAbsent(topic, new ConcurrentLinkedQueue<>()).add(subId);
         return true;
     }
 
     @Override
-    public boolean isSubscribed(int cId, String topic) {
-        ConcurrentLinkedQueue<Integer> clients = channelTosubId.get(topic);
+    public boolean isSubscribed(int connectionId, String topic) {
+        ConcurrentLinkedQueue<Integer> subIds = channelTosubId.get(topic);
 
-        return clients != null && clients.contains(cId);
+        if (subIds == null) return false;
+
+        subIds.removeIf(x -> !subsIdTocId.containsKey(x));
+        for(int subId : subIds)
+            if (subsIdTocId.get(subId) == connectionId)
+                return true;
+
+        return false;
     }
 
     @Override
-    public void unsubscribe(int subId) {
-        Integer cId = subsIdTocId.remove(subId);
-        // if (cId != null) {
-        //     // FIXME: Should we add another map or something to optimize this?
-        //     for (String topic : channelTosubId.keySet()) {
-        //         ConcurrentLinkedQueue<Integer> subs = channelTosubId.get(topic);
-        //         subs.remove(subId);
-        //         if (subs.isEmpty()) {
-        //             channelTosubId.remove(topic);
-        //         }
-        //     }
-        // }
-    }
+    public boolean unsubscribe(int connectionId, int subId) {
+        // Either not subscribed, or trying to unsubscribe another client
+        if (subsIdTocId.get(subId) != connectionId)
+            return false;
 
-    @Override
-    public boolean connect(String login, String pass) {
-        // TODO: verify login and pass with database?
+        subsIdTocId.remove(subId);
         return true;
+    }
+
+    @Override
+    public boolean connect(int connectionId, String login, String pass) {
+        LoginStatus status = db.login(connectionId, login, pass);
+        return status == LoginStatus.LOGGED_IN_SUCCESSFULLY || status == LoginStatus.ADDED_NEW_USER;
     }
 }
