@@ -1,4 +1,5 @@
 #include "../include/StompProtocol.h"
+#include "../include/StompParser.h"
 #include <memory>
 
 StompProtocol::StompProtocol() : handler() {}

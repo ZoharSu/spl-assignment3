@@ -7,8 +7,10 @@
 void listener_loop(StompProtocol *p) {
     while (p->is_active()) {
         std::string frame;
-        p->handler->getFrameAscii(frame, '\0');
-        p->process(frame);
+        if (p->handler->getFrameAscii(frame, '\0'))
+            p->process(frame);
+        else
+            std::cout << "TODO";
     }
 }
 

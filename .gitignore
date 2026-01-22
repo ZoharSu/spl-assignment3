@@ -106,3 +106,4 @@ server/.classpath
 server/.devcontainer/devcontainer.json
 server/target/*
 .ccls-cache/*
+.vscode
