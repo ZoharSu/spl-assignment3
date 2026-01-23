@@ -2,7 +2,7 @@ CFLAGS:=-c -Wall -Weffc++ -g -std=c++11 -Iinclude
 LDFLAGS:=-lboost_system -lpthread
 
 OBJECTS := bin/ConnectionHandler.o bin/StompClient.o bin/StompCommand.o \
-			bin/StompProtocol.o bin/StompParser.o bin/event.o bin/utils.o
+			bin/StompProtocol.o bin/StompParser.o bin/event.o bin/utils.o bin/GameTracker.o
 
 all: StompWCIClient
 
