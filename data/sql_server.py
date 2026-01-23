@@ -18,7 +18,7 @@ import os
 
 SERVER_NAME = "STOMP_PYTHON_SQL_SERVER"  # DO NOT CHANGE!
 DB_FILE = "stomp_server.db"              # DO NOT CHANGE!
-_conn = sqlite3.connect(DB_FILE)
+_conn = sqlite3.connect(DB_FILE, check_same_thread=False)
 
 # NOTE:
 # Deleting database as said in forum.
