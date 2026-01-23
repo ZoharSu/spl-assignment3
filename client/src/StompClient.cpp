@@ -8,31 +8,25 @@
 void listener_loop(StompProtocol *p) {
     while (p->is_active()) {
         StompParser msg = p->recv();
-        if (msg.type != ERROR)
-            p->process(msg);
-        else
-            std::cout << "TODO";
+        if (msg.type == ERROR) {
+            std::cerr << "ERROR: " << msg.srvErrMsg << std::endl;
+            return;
+        }
+        if (msg.type != MESSAGE) {
+            p->process(msg); continue;
+        }
     }
 }
 
-bool handle_login(StompProtocol& p, Command& command) {
-    StompParser msg = p.login(command.username, command.password);
+void handle_login_error(std::string msg) {
+    if (msg == "Socket error: connection error")
+        std::cout << "Could not connect to server" << std::endl;
 
-    if (msg.type == ERROR) {
-        if (msg.srvErrMsg == "Socket error: connection error") {
-            std::cout << "Could not connect to server" << std::endl;
-        }
-        else if (msg.srvErrMsg == "Client already logged in") {
-            std::cout << "The client is already logged in, log out before trying again" << std::endl;
-        }
-        else if (msg.srvErrMsg == "Wrong password") {
-            std::cout << "Wrong password" << std::endl;
-        }
+    else if (msg == "Client already logged in")
+        std::cout << "The client is already logged in, log out before trying again" << std::endl;
 
-        return false;
-    } else std::cout << "Login successful" << std::endl;
-
-    return true;
+    else if (msg == "Wrong password")
+        std::cout << "Wrong password" << std::endl;
 }
 
 std::string to_string(Event& e) {
@@ -86,11 +80,14 @@ int main(int argc, char *argv[]) {
 
         if (command.type == LOGIN && !p.is_active()) {
             p.connect(command.hostname, command.port);
-            p.login(command.username, command.password);
-            // send username + password, await answer
-            bool ok = handle_login(p, command);
-            if (ok)
+
+            StompParser msg = p.login(command.username, command.password);
+
+            if (msg.type == CONNECTED) {
+                std::cout << "Login successful" << std::endl;
                 listener = std::thread(listener_loop, &p);
+            }
+            else handle_login_error(msg.srvErrMsg);
         }
         else if (!p.is_active())
             std::cout << "you must log-in before doing any actions" << std::endl;

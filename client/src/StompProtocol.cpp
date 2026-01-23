@@ -77,6 +77,8 @@ void StompProtocol::unsubscribe(const std::string& topic) {
 void StompProtocol::disconnect() {
     std::string reciept = get_reciept();
     send("DISCONNECT", {{"reciept", reciept}});
+    await_answer(reciept);
+    reset();
 }
 bool StompProtocol::is_active() const {
     return false;

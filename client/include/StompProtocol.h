@@ -24,6 +24,8 @@ private:
 
     void await_answer(std::string reciept);
 
+    int topicToId(std::string topic) const;
+
 public:
 
     std::string username;
@@ -49,6 +51,4 @@ public:
     void reset();
 
     bool is_active() const;
-
-    int topicToId(std::string topic) const;
 };
