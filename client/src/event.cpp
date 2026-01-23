@@ -98,7 +98,13 @@ Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), 
         team_b_updates[key] = val;
     }
 
-    description = frame_body.substr(frame_body.find("description:") + /*len(description:\n) = */14);
+    // In the example events1.json, description was misspelled as discription
+    // Therefore we felt that it's best to check both cases.
+    size_t desc_idx = frame_body.find("\ndescription:\n") != frame_body.npos ?
+                      frame_body.find("\ndescription\n") : frame_body.find("\ndiscription:\n");
+
+    description = frame_body.substr(desc_idx + /*len(description:\n) = */14);
+    std::cout << description << std::endl;
 }
 
 names_and_events parseEventsFile(std::string json_path)
