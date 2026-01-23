@@ -1,11 +1,13 @@
+#include <fstream>
 #include <string>
 #include <thread>
 #include <iostream>
 #include "../include/StompCommand.h"
 #include "../include/StompProtocol.h"
 #include "../include/event.h"
+#include "../include/GameTracker.h"
 
-void listener_loop(StompProtocol *p) {
+void listener_loop(StompProtocol *p, Tracker *t) {
     while (p->is_active()) {
         StompParser msg = p->recv();
         if (msg.type == ERROR) {
@@ -16,7 +18,11 @@ void listener_loop(StompProtocol *p) {
         if (msg.type != MESSAGE) {
             p->process(msg); continue;
         }
-        // FIXME: handle MESSAGE
+        std::string line = msg.body.substr(0, msg.body.find('\n')),
+                    user = line.substr(line.find(": ")),
+                    frame = msg.body.substr(msg.body.find('\n') + 1);
+        Event e{frame};
+        t->add(e, user);
     }
 }
 
@@ -58,21 +64,20 @@ std::string to_string(Event& e) {
 void handle_report(StompProtocol& p, Command& command) {
     names_and_events events = parseEventsFile(command.filename);
 
-    std::string body = "user:" + p.username + '\n';
-
     auto comp = [](Event a, Event b) { return a.get_time() < b.get_time(); };
     std::sort(events.events.begin(), events.events.end(), comp);
 
     for (Event& e : events.events) {
-        // TODO: save in summary for later
-        std::string body = "user: " + p.username + '\n' + to_string(e);
-        p.send(e.get_name(), body);
+        std::string body = "user: " + p.username + '\n' + to_string(e),
+                    dest = e.get_team_a_name() + '_' + e.get_team_b_name();
+        p.send(dest, body);
     }
 }
 
 
 int main(int argc, char *argv[]) {
     StompProtocol p;
+    Tracker tracker;
 
     std::thread listener;
 
@@ -91,7 +96,7 @@ int main(int argc, char *argv[]) {
 
             if (msg.type == CONNECTED) {
                 std::cout << "Login successful" << std::endl;
-                listener = std::thread(listener_loop, &p);
+                listener = std::thread(listener_loop, &p, &tracker);
             }
             else handle_login_error(msg.srvErrMsg);
         }
@@ -100,6 +105,10 @@ int main(int argc, char *argv[]) {
         else if (command.type == JOIN) p.subscribe(command.game_name);
         else if (command.type == EXIT) p.unsubscribe(command.game_name);
         else if (command.type == REPORT) handle_report(p, command);
+        else if (command.type == SUMMARY) {
+            std::string summary = tracker.summerize(command.username, command.game_name);
+            std::ofstream(command.filename) << summary;
+        }
         else if (command.type == LOGOUT) {
             p.disconnect();
             listener.join();

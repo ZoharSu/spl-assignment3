@@ -4,6 +4,7 @@
 
 class Events {
 public:
+    Events();
     std::string team_a;
     std::string team_b;
     std::vector<std::pair<std::string, std::string>> general_updates;

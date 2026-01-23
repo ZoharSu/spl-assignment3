@@ -1,6 +1,11 @@
 #include "../include/GameTracker.h"
 #include <algorithm>
 
+Events::Events() :  team_a{}, team_b{}, general_updates{}, team_a_updates{},
+                    team_b_updates{}, time_event_description{} {}
+
+Tracker::Tracker() : user_game_events{} {}
+
 void Tracker::add(const Event& e, const std::string& user) {
     std::string game = e.get_team_a_name() + '_' + e.get_team_b_name();
     Events events = user_game_events[user][game];
