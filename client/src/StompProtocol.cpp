@@ -84,6 +84,7 @@ void StompProtocol::subscribe(const std::string& topic) {
                        {"id", id}});
 
     await_answer(receipt);
+    idToTopic.insert({topicToId(topic), topic});
     std::cout << "Joined channel " << topic << std::endl;
 }
 
@@ -101,6 +102,7 @@ void StompProtocol::unsubscribe(const std::string& topic) {
     send("UNSUBSCRIBE", {{"id", id}, {"receipt", receipt}});
 
     await_answer(receipt);
+    idToTopic.erase(topicToId(topic));
     std::cout << "Exited channel " << topic << std::endl;
 }
 
