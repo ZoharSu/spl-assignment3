@@ -12,13 +12,13 @@ public class StompServer {
 
         int port = Integer.parseInt(args[0]);
 
-        if (args[1] == "tpc")
+        if (args[1].equals("tpc"))
             Server.threadPerClient(
                     port, //port
                     StompProtocol::new, //protocol factory
                     StompMessageEncoderDecoder::new //message encoder decoder factory
             ).serve();
-        else if (args[1] == "reactor")
+        else if (args[1].equals("reactor"))
             Server.reactor(
                     Runtime.getRuntime().availableProcessors(),
                     port, //port
