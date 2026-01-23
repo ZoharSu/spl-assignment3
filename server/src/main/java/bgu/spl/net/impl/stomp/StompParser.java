@@ -70,7 +70,9 @@ class StompParser {
 
             // empty line => body starts
             if (line.isEmpty()) {
-                body = msg.substring(eol + 1, msg.length() - 1);
+                if (eol < msg.length())
+                    body = msg.substring(eol + 1, msg.length());
+                else body = "";
                 return;
             }
 
