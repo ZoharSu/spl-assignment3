@@ -1,3 +1,4 @@
+#include "../include/utils.h"
 #include "../include/event.h"
 #include "../include/json.hpp"
 #include <iostream>
@@ -63,6 +64,41 @@ const std::string &Event::get_discription() const
 
 Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), name(""), time(0), game_updates(), team_a_updates(), team_b_updates(), description("")
 {
+    // TODO: error handling?
+    std::vector<std::string> lines = split(frame_body, '\n');
+
+    team_a_name = lines[0].substr(lines[0].find(": "));
+    team_a_name = lines[1].substr(lines[1].find(": "));
+    name = lines[2].substr(lines[2].find(": "));
+    time = std::stoi(lines[3].substr(lines[3].find(": ")));
+
+    int i;
+
+    // general updates:
+    for (i = 5; i < lines.size() && lines[i].find("    ") == 0; i++) {
+        std::string key = lines[i].substr(4, lines[i].find(':') - 4),
+                    val = lines[i].substr(lines[i].find(": ") + 2);
+
+        game_updates[key] = val;
+    }
+
+    // team a updates:
+    for (i++; i < lines.size() && lines[i].find("    ") == 0; i++) {
+        std::string key = lines[i].substr(4, lines[i].find(':') - 4),
+                    val = lines[i].substr(lines[i].find(": ") + 2);
+
+        team_a_updates[key] = val;
+    }
+
+    // team b updates:
+    for (i++; i < lines.size() && lines[i].find("    ") == 0; i++) {
+        std::string key = lines[i].substr(4, lines[i].find(':') - 4),
+                    val = lines[i].substr(lines[i].find(": ") + 2);
+
+        team_b_updates[key] = val;
+    }
+
+    description = frame_body.substr(frame_body.find("description:") + /*len(description:\n) = */14);
 }
 
 names_and_events parseEventsFile(std::string json_path)
