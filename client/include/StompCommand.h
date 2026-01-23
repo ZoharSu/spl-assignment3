@@ -5,7 +5,7 @@
 
 enum CommandType {
     LOGIN, JOIN, EXIT,
-    REPORT, SUMMERY, LOGOUT,
+    REPORT, SUMMARY, LOGOUT,
 };
 
 class Command {
@@ -21,7 +21,7 @@ public:
     std::string username;
     std::string password;
 
-    Command(std::string& line);
+    Command(const std::string& line);
 
     bool is_legal() { return error.empty(); }
 

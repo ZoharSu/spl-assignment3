@@ -90,6 +90,7 @@ StompParser StompProtocol::recv() {
     bool ok = handler->getFrameAscii(frame, '\0');
 
     if (!ok) {
+        // TODO: remove the print
         std::cout << frame << std::endl;
         StompParser ret;
         ret.srvErrMsg = "Socket error: connection error";
@@ -100,10 +101,13 @@ StompParser StompProtocol::recv() {
 }
 
 void StompProtocol::await_answer(std::string receipt) {
+    // TODO: add some screen print awaiting response
+    std::unique_lock<std::mutex> lock(mtx);
     bool& recieved = receiptMap[receipt];
+    while (!recieved)
+        cv.wait(lock);
 
-    // TODO: busy-waiting is bad for your health, please fix
-    while (!recieved);
+    // recieved the receipt from the server
 }
 
 std::string StompProtocol::get_receipt() {
@@ -111,5 +115,7 @@ std::string StompProtocol::get_receipt() {
 }
 
 void StompProtocol::process(const StompParser& p) {
+    std::unique_lock<std::mutex> lock(mtx);
     if (p.receipt != "") receiptMap[p.receipt] = true;
+    cv.notify_all();
 }

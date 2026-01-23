@@ -1,15 +1,15 @@
 #include "../include/StompCommand.h"
 #include "../include/utils.h"
 
-Command::Command(std::string& line) :
+Command::Command(const std::string& line) :
     error{}, type{}, game_name{}, filename{},
     port{}, hostname{}, username{}, password{}
  {
     std::vector<std::string> args = split(line, ' ');
 
-    if (args.size() == 0) return; // TODO: error
+    if (args.size() == 0) return; // TODO: error (field)
     if (args[0] == "logout")
-        this->type = CommandType::LOGOUT;
+        type = LOGOUT;
     else if (args[0] == "login" && args.size() == 4) {
         parseLogin(args);
     } else if (args[0] == "join" && args.size() == 2) {
@@ -21,13 +21,13 @@ Command::Command(std::string& line) :
     } else if (args[0] == "report" && args.size() == 2) {
         filename = args[1];
         type = REPORT;
-    } else if (args[0] == "summery" && args.size() == 4) {
+    } else if (args[0] == "summary" && args.size() == 4) {
         game_name = args[1];
         username = args[2];
         filename = args[3];
-        type = SUMMERY;
+        type = SUMMARY;
     } else {
-        
+        // TODO: error
     }
 }
 

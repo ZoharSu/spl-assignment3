@@ -7,7 +7,7 @@ StompParser::StompParser() :
     srvErrMsg(""), body(""), isLegal(false) {};
 
 StompParser::StompParser(const std::string& msg) :
-    type(), subId(-1), msgId(-1), dest(""), receipt(""),
+    type(ERROR), subId(-1), msgId(-1), dest(""), receipt(""),
     srvErrMsg(""), body(""), isLegal(false) {
 
     std::vector<std::string> lines;

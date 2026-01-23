@@ -17,6 +17,7 @@ class StompParser {
         CONNECT, SEND, SUBSCRIBE, UNSUBSCRIBE, DISCONNECT
     }
 
+    // TODO: Consider file header too
     public StompParser(String msg) {
         message = msg;
         if (message == null) {

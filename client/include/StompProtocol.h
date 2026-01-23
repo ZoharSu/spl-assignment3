@@ -5,8 +5,9 @@
 #include <memory>
 #include <utility>
 #include <unordered_map>
+#include <mutex>
+#include <condition_variable>
 
-// TODO: implement the STOMP protocol
 class StompProtocol
 {
 private:
@@ -15,6 +16,8 @@ private:
     std::unordered_map<std::string, bool> receiptMap;
     std::hash<std::string> hash;
     int next_receipt;
+    std::mutex mtx;
+    std::condition_variable cv;
 
     void send(const std::string command,
               const std::vector<std::pair<std::string, std::string>> headers,

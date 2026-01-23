@@ -10,11 +10,13 @@ void listener_loop(StompProtocol *p) {
         StompParser msg = p->recv();
         if (msg.type == ERROR) {
             std::cerr << "ERROR: " << msg.srvErrMsg << std::endl;
+            // p->reset();
             return;
         }
         if (msg.type != MESSAGE) {
             p->process(msg); continue;
         }
+        // FIXME: handle MESSAGE
     }
 }
 
@@ -62,6 +64,7 @@ void handle_report(StompProtocol& p, Command& command) {
     std::sort(events.events.begin(), events.events.end(), comp);
 
     for (Event& e : events.events) {
+        // TODO: save in summary for later
         std::string body = "user: " + p.username + '\n' + to_string(e);
         p.send(e.get_name(), body);
     }
@@ -78,6 +81,9 @@ int main(int argc, char *argv[]) {
         std::getline(std::cin, line);
         Command command(line);
 
+        // TODO: add login check to print appropriate string to screen
+        // Client should check before prompting to server
+        // TODO: check command is legal
         if (command.type == LOGIN && !p.is_active()) {
             p.connect(command.hostname, command.port);
 
@@ -90,11 +96,10 @@ int main(int argc, char *argv[]) {
             else handle_login_error(msg.srvErrMsg);
         }
         else if (!p.is_active())
-            std::cout << "you must log-in before doing any actions" << std::endl;
+            std::cout << "You must log in before doing any actions" << std::endl;
         else if (command.type == JOIN) p.subscribe(command.game_name);
         else if (command.type == EXIT) p.unsubscribe(command.game_name);
         else if (command.type == REPORT) handle_report(p, command);
-
         else if (command.type == LOGOUT) {
             p.disconnect();
             listener.join();
