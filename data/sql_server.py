@@ -128,6 +128,7 @@ def handle_client(client_socket: socket.socket, addr):
                     client_socket.sendall(result.encode('utf-8') + b"\0")
             else:
                 execute_sql_command(message)
+                client_socket.sendall(b'\0')
 
     except Exception as e:
         print(f"[{SERVER_NAME}] Error handling client {addr}: {e}")
