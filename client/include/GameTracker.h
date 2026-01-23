@@ -1,5 +1,8 @@
+#pragma once
 #include <unordered_map>
 #include <string>
+#include <vector>
+#include <map>
 #include "event.h"
 
 class Events {
@@ -7,10 +10,12 @@ public:
     Events();
     std::string team_a;
     std::string team_b;
-    std::vector<std::pair<std::string, std::string>> general_updates;
-    std::vector<std::pair<std::string, std::string>> team_a_updates;
-    std::vector<std::pair<std::string, std::string>> team_b_updates;
-    std::vector<std::pair<std::string, std::string>> time_event_description;
+
+    std::map<std::string, std::string> general_updates;
+    std::map<std::string, std::string> team_a_updates;
+    std::map<std::string, std::string> team_b_updates;
+
+    std::vector<std::pair<int, std::string>> time_event_desc;
 };
 
 class Tracker {
