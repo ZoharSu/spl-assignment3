@@ -8,13 +8,18 @@ Tracker::Tracker() : user_game_events{} {}
 
 void Tracker::add(const Event& e, const std::string& user) {
     std::string game = e.get_team_a_name() + '_' + e.get_team_b_name();
-    Events events = user_game_events[user][game];
+    Events& events = user_game_events[user][game];
     if (events.team_a.empty()) {
         events.team_a = e.get_team_a_name();
         events.team_b = e.get_team_b_name();
     }
-    events.time_event_description.push_back(
-           {std::to_string(e.get_time()) + '-' + e.get_name(), e.get_discription()});
+    std::string time_name = std::to_string(e.get_time()) + '-' + e.get_name();
+
+    events.time_event_description.push_back({time_name, e.get_discription()});
+
+    for (std::pair<std::string, std::string> pair : e.get_game_updates())
+        events.team_a_updates.push_back(pair);
+
     for (std::pair<std::string, std::string> pair : e.get_team_a_updates())
         events.team_a_updates.push_back(pair);
 
@@ -23,7 +28,7 @@ void Tracker::add(const Event& e, const std::string& user) {
 }
 
 std::string Tracker::summerize(const std::string& user, const std::string& game) {
-    Events events = user_game_events[user][game];
+    Events& events = user_game_events[user][game];
     std::string ret = events.team_a + " vs " + events.team_b + '\n';
     ret += "Game stats:\n";
     ret += "General stats:\n";
