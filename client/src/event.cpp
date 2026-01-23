@@ -67,12 +67,12 @@ Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), 
     // TODO: error handling?
     std::vector<std::string> lines = split(frame_body, '\n');
 
-    team_a_name = lines[0].substr(lines[0].find(": "));
-    team_a_name = lines[1].substr(lines[1].find(": "));
-    name = lines[2].substr(lines[2].find(": "));
-    time = std::stoi(lines[3].substr(lines[3].find(": ")));
+    team_a_name = lines[0].substr(lines[0].find(": ") + 2);
+    team_b_name = lines[1].substr(lines[1].find(": ") + 2);
+    name = lines[2].substr(lines[2].find(": ") + 2);
+    time = std::stoi(lines[3].substr(lines[3].find(": ") + 2));
 
-    int i;
+    size_t i;
 
     // general updates:
     for (i = 5; i < lines.size() && lines[i].find("    ") == 0; i++) {

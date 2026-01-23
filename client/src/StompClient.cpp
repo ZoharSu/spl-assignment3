@@ -15,14 +15,13 @@ void listener_loop(StompProtocol *p, Tracker *t) {
             // p->reset();
             return;
         }
-        if (msg.type != MESSAGE) {
-            p->process(msg); continue;
-        }
-        std::string line = msg.body.substr(0, msg.body.find('\n')),
-                    user = line.substr(line.find(": ")),
-                    frame = msg.body.substr(msg.body.find('\n') + 1);
-        Event e{frame};
-        t->add(e, user);
+        if (msg.type == MESSAGE) {
+            std::string line = msg.body.substr(0, msg.body.find('\n')),
+                        user = line.substr(line.find(": ") + 2),
+                        frame = msg.body.substr(msg.body.find('\n') + 1);
+            Event e{frame};
+            t->add(e, user);
+        } else p->process(msg);
     }
 }
 
