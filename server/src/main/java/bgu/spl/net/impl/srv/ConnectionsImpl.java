@@ -92,7 +92,8 @@ public class ConnectionsImpl<T> implements Connections<T> {
             return false;
 
         subsIdTocId.put(subId, connectionId);
-        channelTosubId.putIfAbsent(topic, new ConcurrentLinkedQueue<>()).add(subId);
+        channelTosubId.putIfAbsent(topic, new ConcurrentLinkedQueue<>());
+        channelTosubId.get(topic).add(subId);
         return true;
     }
 
