@@ -12,17 +12,17 @@ class StompProtocol
 private:
     std::unique_ptr<ConnectionHandler>   handler;
     std::unordered_map<int, std::string> idToTopic;
-    std::unordered_map<std::string, bool> recieptMap;
+    std::unordered_map<std::string, bool> receiptMap;
     std::hash<std::string> hash;
-    int next_reciept;
+    int next_receipt;
 
     void send(const std::string command,
               const std::vector<std::pair<std::string, std::string>> headers,
               const std::string body = "");
 
-    std::string get_reciept();
+    std::string get_receipt();
 
-    void await_answer(std::string reciept);
+    void await_answer(std::string receipt);
 
     int topicToId(std::string topic) const;
 

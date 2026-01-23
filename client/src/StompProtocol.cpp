@@ -12,15 +12,16 @@ int StompProtocol::topicToId(std::string topic) const {
 void StompProtocol::connect(std::string hostname, short port) {
     handler.reset(new ConnectionHandler(hostname, port));
     handler->connect();
-    next_reciept = 0;
+    next_receipt = 0;
     idToTopic.clear();
 }
 
 StompParser StompProtocol::login(std::string user, std::string password) {
+    this->username = user;
     std::vector<std::pair<std::string, std::string>> headers = {
         {"accept-version", "1.2"},
         {"host", "stomp.cs.bgu.ac.il"},
-        {"login", username},
+        {"login", user},
         {"passcode", password}
     };
     send("CONNECT", headers);
@@ -49,39 +50,39 @@ void StompProtocol::send(const std::string command,
 }
 
 void StompProtocol::send(const std::string& topic, const std::string& msg) {
-    std::string reciept = get_reciept();
-    send("SEND", {{"destination", topic}, {"reciept", reciept}}, msg);
+    std::string receipt = get_receipt();
+    send("SEND", {{"destination", topic}, {"receipt", receipt}}, msg);
 
-    await_answer(reciept);
+    await_answer(receipt);
 }
 
 void StompProtocol::subscribe(const std::string& topic) {
     std::string id = std::to_string(topicToId(topic));
-    std::string reciept = get_reciept();
+    std::string receipt = get_receipt();
 
     send("SUBSCRIBE", {{"destination", topic},
-                       {"reciept", reciept},
+                       {"receipt", receipt},
                        {"id", id}});
 
-    await_answer(reciept);
+    await_answer(receipt);
 }
 
 void StompProtocol::unsubscribe(const std::string& topic) {
     std::string id = std::to_string(topicToId(topic));
-    std::string reciept = get_reciept();
-    send("UNSUBSCRIBE", {{"id", id}, {"reciept", reciept}});
+    std::string receipt = get_receipt();
+    send("UNSUBSCRIBE", {{"id", id}, {"receipt", receipt}});
 
-    await_answer(reciept);
+    await_answer(receipt);
 }
 
 void StompProtocol::disconnect() {
-    std::string reciept = get_reciept();
-    send("DISCONNECT", {{"reciept", reciept}});
-    await_answer(reciept);
+    std::string receipt = get_receipt();
+    send("DISCONNECT", {{"receipt", receipt}});
+    await_answer(receipt);
     reset();
 }
 bool StompProtocol::is_active() const {
-    return false;
+    return bool(handler);
 }
 
 StompParser StompProtocol::recv() {
@@ -89,6 +90,7 @@ StompParser StompProtocol::recv() {
     bool ok = handler->getFrameAscii(frame, '\0');
 
     if (!ok) {
+        std::cout << frame << std::endl;
         StompParser ret;
         ret.srvErrMsg = "Socket error: connection error";
         return ret;
@@ -97,17 +99,17 @@ StompParser StompProtocol::recv() {
     return StompParser{frame};
 }
 
-void StompProtocol::await_answer(std::string reciept) {
-    bool& recieved = recieptMap[reciept];
+void StompProtocol::await_answer(std::string receipt) {
+    bool& recieved = receiptMap[receipt];
 
     // TODO: busy-waiting is bad for your health, please fix
     while (!recieved);
 }
 
-std::string StompProtocol::get_reciept() {
-    return std::to_string(this->next_reciept);
+std::string StompProtocol::get_receipt() {
+    return std::to_string(this->next_receipt++);
 }
 
 void StompProtocol::process(const StompParser& p) {
-    if (p.receipt != "") recieptMap[p.receipt] = true;
+    if (p.receipt != "") receiptMap[p.receipt] = true;
 }
