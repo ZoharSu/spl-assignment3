@@ -12,7 +12,8 @@ void listener_loop(StompProtocol *p, Tracker *t) {
         StompParser msg = p->recv();
         if (msg.type == ERROR) {
             std::cerr << "ERROR: " << msg.srvErrMsg << std::endl;
-            // p->reset();
+            p->closeHandler();
+            p->reset();
             return;
         }
         if (msg.type == MESSAGE) {
@@ -26,10 +27,10 @@ void listener_loop(StompProtocol *p, Tracker *t) {
 }
 
 void handle_login_error(std::string msg) {
-    if (msg == "Socket error: connection error")
-        std::cout << "Could not connect to server" << std::endl;
+    // if (msg == "Socket error: connection error")
+    //     std::cout << "Could not connect to server" << std::endl;
 
-    else if (msg == "Client already logged in")
+    if (msg == "User already logged in")
         std::cout << "The client is already logged in, log out before trying again" << std::endl;
 
     else if (msg == "Wrong password")
@@ -73,6 +74,14 @@ void handle_report(StompProtocol& p, Command& command) {
     }
 }
 
+void ensureClosed(StompProtocol& p, std::thread& listener) {
+    p.closeHandler();
+
+    if (listener.joinable())
+        listener.join();
+
+    p.reset();
+}
 
 int main(int argc, char *argv[]) {
     StompProtocol p;
@@ -85,22 +94,29 @@ int main(int argc, char *argv[]) {
         std::getline(std::cin, line);
         Command command(line);
 
-        // TODO: add login check to print appropriate string to screen
-        // Client should check before prompting to server
-        // TODO: check command is legal
-        if (command.type == LOGIN && !p.is_active()) {
-            p.connect(command.hostname, command.port);
+        if (command.type == CERROR)
+            std::cout << command.error << std::endl;
+        else if (command.type == LOGIN) {
+            if (!p.is_active()) {
+                StompParser msg;
+                if (p.connect(command.hostname, command.port))
+                    msg = p.login(command.username, command.password);
+                else {
+                    std::cout << "Could not connect to server" << std::endl;
+                    continue;
+                }
 
-            StompParser msg = p.login(command.username, command.password);
-
-            if (msg.type == CONNECTED) {
-                std::cout << "Login successful" << std::endl;
-                listener = std::thread(listener_loop, &p, &tracker);
-            }
-            else handle_login_error(msg.srvErrMsg);
+                if (msg.type == CONNECTED) {
+                    std::cout << "Login successful" << std::endl;
+                    listener = std::thread(listener_loop, &p, &tracker);
+                } else {
+                    ensureClosed(p, listener);
+                    handle_login_error(msg.srvErrMsg);
+                }
+            } else
+                std::cout << "The client is already logged in, log out before trying again" << std::endl;
         }
-        else if (!p.is_active())
-            std::cout << "You must log in before doing any actions" << std::endl;
+        else if (!p.is_active()) std::cout << "You must log in before doing any actions" << std::endl;
         else if (command.type == JOIN) p.subscribe(command.game_name);
         else if (command.type == EXIT) p.unsubscribe(command.game_name);
         else if (command.type == REPORT) handle_report(p, command);
@@ -110,7 +126,7 @@ int main(int argc, char *argv[]) {
         }
         else if (command.type == LOGOUT) {
             p.disconnect();
-            listener.join();
+            ensureClosed(p, listener);
         }
     }
 

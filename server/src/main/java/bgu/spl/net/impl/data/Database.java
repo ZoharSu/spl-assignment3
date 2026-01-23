@@ -97,6 +97,7 @@ public class Database {
 			escapeSql(username)
 		);
 		executeSQL(sql);
+		System.out.println("User \"" + username + "\" logged in");
 	}
 
 	private LoginStatus userExistsCase(int connectionId, String username, String password) {
@@ -143,6 +144,7 @@ public class Database {
 			
 			user.logout();
 			connectionsIdMap.remove(connectionsId);
+			System.out.println("User \"" + user.name + "\" logged out");
 		}
 	}
 

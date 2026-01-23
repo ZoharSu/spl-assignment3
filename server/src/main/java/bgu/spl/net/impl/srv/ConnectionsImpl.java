@@ -114,7 +114,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
     @Override
     public boolean unsubscribe(int connectionId, int subId) {
         // Either not subscribed, or trying to unsubscribe another client
-        if (subsIdTocId.get(subId) != connectionId)
+        if (subsIdTocId.get(subId) != (Integer)connectionId)
             return false;
 
         subsIdTocId.remove(subId);

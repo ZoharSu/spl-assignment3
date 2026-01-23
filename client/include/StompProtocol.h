@@ -16,6 +16,7 @@ private:
     std::unordered_map<std::string, bool> receiptMap;
     std::hash<std::string> hash;
     int next_receipt;
+    std::atomic<bool> isActive;
     std::mutex mtx;
     std::condition_variable cv;
 
@@ -35,7 +36,7 @@ public:
 
     StompProtocol();
 
-    void connect(std::string hostname, short port);
+    bool connect(std::string hostname, short port);
 
     StompParser login(std::string user, std::string password);
 
@@ -50,6 +51,8 @@ public:
     void unsubscribe(const std::string& topic);
 
     StompParser recv();
+
+    void closeHandler();
 
     void reset();
 

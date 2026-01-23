@@ -9,11 +9,16 @@ int StompProtocol::topicToId(std::string topic) const {
     return hash(username + topic);
 }
 
-void StompProtocol::connect(std::string hostname, short port) {
+bool StompProtocol::connect(std::string hostname, short port) {
     handler.reset(new ConnectionHandler(hostname, port));
-    handler->connect();
+    if (!handler->connect()) {
+        reset();
+        return false;
+    }
+    isActive = true;
     next_receipt = 0;
     idToTopic.clear();
+    return true;
 }
 
 StompParser StompProtocol::login(std::string user, std::string password) {
@@ -29,9 +34,15 @@ StompParser StompProtocol::login(std::string user, std::string password) {
     return recv();
 }
 
+void StompProtocol::closeHandler() {
+    isActive = false;
+    if (handler) {
+        handler->shutdown();
+        handler->close();
+    }
+}
 
 void StompProtocol::reset() {
-    handler->close();
     handler.reset();
 }
 
@@ -57,6 +68,14 @@ void StompProtocol::send(const std::string& topic, const std::string& msg) {
 }
 
 void StompProtocol::subscribe(const std::string& topic) {
+
+    // Already subscribed
+    if (idToTopic.find(topicToId(topic)) != idToTopic.end()) {
+        std::cout << "Already joined channel " << topic << std::endl;
+        return;
+    }
+
+    // Not subscribed
     std::string id = std::to_string(topicToId(topic));
     std::string receipt = get_receipt();
 
@@ -65,46 +84,49 @@ void StompProtocol::subscribe(const std::string& topic) {
                        {"id", id}});
 
     await_answer(receipt);
+    std::cout << "Joined channel " << topic << std::endl;
 }
 
 void StompProtocol::unsubscribe(const std::string& topic) {
+
+    // Already unsubscribed
+    if (idToTopic.find(topicToId(topic)) == idToTopic.end()) {
+        std::cout << "Already exited channel " << topic << std::endl;
+        return;
+    }
+
+    // Subscribed
     std::string id = std::to_string(topicToId(topic));
     std::string receipt = get_receipt();
     send("UNSUBSCRIBE", {{"id", id}, {"receipt", receipt}});
 
     await_answer(receipt);
+    std::cout << "Exited channel " << topic << std::endl;
 }
 
 void StompProtocol::disconnect() {
     std::string receipt = get_receipt();
     send("DISCONNECT", {{"receipt", receipt}});
     await_answer(receipt);
-    reset();
 }
+
 bool StompProtocol::is_active() const {
-    return bool(handler);
+    return isActive.load();
 }
 
 StompParser StompProtocol::recv() {
     std::string frame;
-    bool ok = handler->getFrameAscii(frame, '\0');
-
-    if (!ok) {
-        // TODO: remove the print
-        std::cout << frame << std::endl;
+    if (!handler || !handler->getFrameAscii(frame, '\0')) {
         StompParser ret;
-        ret.srvErrMsg = "Socket error: connection error";
+        ret.type = UNKNOWN;
         return ret;
     }
-
     return StompParser{frame};
 }
 
 void StompProtocol::await_answer(std::string receipt) {
-    // TODO: add some screen print awaiting response
     std::unique_lock<std::mutex> lock(mtx);
-    bool& recieved = receiptMap[receipt];
-    while (!recieved)
+    while (!receiptMap[receipt])
         cv.wait(lock);
 
     // recieved the receipt from the server
@@ -115,7 +137,9 @@ std::string StompProtocol::get_receipt() {
 }
 
 void StompProtocol::process(const StompParser& p) {
-    std::unique_lock<std::mutex> lock(mtx);
-    if (p.receipt != "") receiptMap[p.receipt] = true;
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        if (!p.receipt.empty()) receiptMap[p.receipt] = true;
+    }
     cv.notify_all();
 }
