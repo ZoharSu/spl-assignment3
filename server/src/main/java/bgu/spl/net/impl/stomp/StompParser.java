@@ -12,12 +12,12 @@ class StompParser {
     public String       errMsg  = null;
     public String       receipt = null;
     public String       message = null;
+    public String       file    = null;
 
     public enum MessageType {
         CONNECT, SEND, SUBSCRIBE, UNSUBSCRIBE, DISCONNECT
     }
 
-    // TODO: Consider file header too
     public StompParser(String msg) {
         message = msg;
         if (message == null) {
@@ -77,7 +77,6 @@ class StompParser {
                 return;
             }
 
-            // FIXME: what about headers with ':' in the value?
             String[] parts = msg.substring(loc, eol).split(":");
             if (parts.length != 2) {
                 illegal("Illegal header structure");
@@ -106,6 +105,8 @@ class StompParser {
                 pass = value;
             else if (key.equals("accept-version") && ver == null)
                 ver = value;
+            else if (key.equals("file") && file == null)
+                file = value;
             else {
                 illegal("Invalid header");
                 return;

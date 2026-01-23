@@ -104,7 +104,6 @@ Event::Event(const std::string &frame_body) : team_a_name(""), team_b_name(""), 
                       frame_body.find("\ndescription\n") : frame_body.find("\ndiscription:\n");
 
     description = frame_body.substr(desc_idx + /*len(description:\n) = */14);
-    std::cout << description << std::endl;
 }
 
 names_and_events parseEventsFile(std::string json_path)

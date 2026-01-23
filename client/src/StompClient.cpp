@@ -14,7 +14,7 @@ void listener_loop(StompProtocol *p, Tracker *t) {
             std::cerr << "ERROR: " << msg.srvErrMsg << std::endl;
             p->closeHandler();
             p->reset();
-            return;
+            break;
         }
         if (msg.type == MESSAGE) {
             std::string line = msg.body.substr(0, msg.body.find('\n')),
@@ -22,7 +22,8 @@ void listener_loop(StompProtocol *p, Tracker *t) {
                         frame = msg.body.substr(msg.body.find('\n') + 1);
             Event e{frame};
             t->add(e, user);
-        } else p->process(msg);
+        } else if (msg.type == RECEIPT)
+            p->process(msg);
     }
 }
 
@@ -67,10 +68,15 @@ void handle_report(StompProtocol& p, Command& command) {
     auto comp = [](Event a, Event b) { return a.get_time() < b.get_time(); };
     std::sort(events.events.begin(), events.events.end(), comp);
 
+    bool first_time = true;
     for (Event& e : events.events) {
         std::string body = "user: " + p.username + '\n' + to_string(e),
                     dest = e.get_team_a_name() + '_' + e.get_team_b_name();
-        p.send(dest, body);
+        if (first_time) {
+            first_time = false;
+            p.send(dest, command.filename, body);
+        } else
+            p.send(dest, body);
     }
 }
 

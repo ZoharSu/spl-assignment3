@@ -44,6 +44,8 @@ public:
 
     void process(const StompParser& p);
 
+    void send(const std::string& topic, const std::string& file, const std::string& msg);
+
     void send(const std::string& topic, const std::string& msg);
 
     void subscribe(const std::string& topic);

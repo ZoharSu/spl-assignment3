@@ -14,8 +14,6 @@ public class ConnectionsImpl<T> implements Connections<T> {
     private ConcurrentHashMap<Integer, Integer> subsIdTocId;
     private ConcurrentHashMap<Integer, ConnectionHandler<T>> cIdtoHandlers;
 
-    // TODO: deal with the case where an element is removed
-    //       while it's connectionId is still in connections
     private ConcurrentHashMap<String, ConcurrentLinkedQueue<Integer>> channelTosubId;
     private BiFunction<T, Integer, T> appendId;
     private AtomicInteger nextClientId;

@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-StompProtocol::StompProtocol() : handler() {}
+StompProtocol::StompProtocol() : handler(nullptr), isActive(false) {}
 
 int StompProtocol::topicToId(std::string topic) const {
     return hash(username + topic);
@@ -60,11 +60,23 @@ void StompProtocol::send(const std::string command,
     handler->sendFrameAscii(frame, '\0');
 }
 
-void StompProtocol::send(const std::string& topic, const std::string& msg) {
-    std::string receipt = get_receipt();
-    send("SEND", {{"destination", topic}, {"receipt", receipt}}, msg);
+void StompProtocol::send(const std::string& topic, const std::string& file, const std::string& msg) {
+    if (idToTopic.find(topicToId(topic)) == idToTopic.end()) {
+        std::cout << "You are not subscribed to the channel " << topic << std::endl;
+        return;
+    }
 
-    await_answer(receipt);
+    send("SEND", {{"destination", topic}, {"file", file}}, msg);
+}
+
+void StompProtocol::send(const std::string& topic, const std::string& msg) {
+
+    if (idToTopic.find(topicToId(topic)) == idToTopic.end()) {
+        std::cout << "You are not subscribed to the channel " << topic << std::endl;
+        return;
+    }
+
+    send("SEND", {{"destination", topic}}, msg);
 }
 
 void StompProtocol::subscribe(const std::string& topic) {

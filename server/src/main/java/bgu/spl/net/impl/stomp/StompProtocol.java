@@ -3,6 +3,7 @@ package bgu.spl.net.impl.stomp;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import bgu.spl.net.api.StompMessagingProtocol;
+import bgu.spl.net.impl.data.Database;
 import bgu.spl.net.impl.data.LoginStatus;
 import bgu.spl.net.srv.Connections;
 
@@ -13,6 +14,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     private volatile boolean shouldTerminate = false;
     private volatile boolean loggedIn = false;
     private volatile int connectionId;
+    private final Database db = Database.getInstance();
 
     private static final AtomicInteger nextMessageId = new AtomicInteger();
 
@@ -96,6 +98,9 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     }
 
     private void handleSend(StompParser p) {
+        if (p.body.indexOf(": ") != -1 && p.file != null)
+            db.trackFileUpload(p.body.substring(p.body.indexOf(": ") + 2, p.body.indexOf("\n")), p.file, p.dest);
+
         StringBuilder msg = new StringBuilder();
         msg.append("MESSAGE\n");
         msg.append("destination:").append(p.dest).append("\n");

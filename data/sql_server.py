@@ -120,7 +120,6 @@ def handle_client(client_socket: socket.socket, addr):
             if message == "":
                 break
 
-            # TODO: REMOVE
             print(f"[{SERVER_NAME}] Received:")
             print(message)
 

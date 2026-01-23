@@ -42,7 +42,6 @@ StompParser::StompParser(const std::string& msg) :
             std::string key = header.substr(0, sep);
             std::string value = header.substr(sep + 1);
 
-            // FIXME: should we check for id validity (integer)?
             if (key == "subscription") {
                 subId = std::stoi(value);
             } else if (key == "message-id") {
