@@ -5,7 +5,7 @@
 
 enum CommandType {
     LOGIN, JOIN, EXIT,
-    REPORT, SUMMARY, LOGOUT,
+    REPORT, SUMMARY, LOGOUT, CERROR
 };
 
 class Command {

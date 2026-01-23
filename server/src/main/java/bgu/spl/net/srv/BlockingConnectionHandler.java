@@ -68,11 +68,17 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     @Override
     public void sendAndClose(T msg) {
         synchronized(out) {
-            send(msg);
             try {
-                close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
+                out.write((encdec.encode(msg)));
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
             }
         }
     }

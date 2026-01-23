@@ -20,7 +20,7 @@ public class StompMessageEncoderDecoder implements MessageEncoderDecoder<String>
 
     @Override
     public byte[] encode(String message) {
-        return (message + "\n\0").getBytes();
+        return (message + "\0").getBytes();
     }
 
     private void pushByte(byte nextByte) {

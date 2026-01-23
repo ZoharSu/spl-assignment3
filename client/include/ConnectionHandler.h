@@ -48,4 +48,6 @@ public:
 	// Close down the connection properly.
 	void close();
 
+	void shutdown();
+
 }; //class ConnectionHandler

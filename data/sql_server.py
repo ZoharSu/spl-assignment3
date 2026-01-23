@@ -18,22 +18,24 @@ import os
 
 SERVER_NAME = "STOMP_PYTHON_SQL_SERVER"  # DO NOT CHANGE!
 DB_FILE = "stomp_server.db"              # DO NOT CHANGE!
-_conn = sqlite3.connect(DB_FILE, check_same_thread=False)
 
 # NOTE:
 # Deleting database as said in forum.
-# Otherwise, it creates problems on the java side with login.
-def delete_db_file():
-    if os.path.exists(DB_FILE):
-        try:
-            os.remove(DB_FILE)
-        except:
-            print("Failed to remove previous database file")
+# Otherwise, it creates problems on the java side.
+if os.path.exists(DB_FILE):
+    try:
+        os.remove(DB_FILE)
+        print("Previous database file removed")
+    except:
+        print("Failed to remove previous database file")
+else:
+    print("Database file does not exist")
+
+_conn = sqlite3.connect(DB_FILE, check_same_thread=False)
 
 def _close_db():
     _conn.commit()
     _conn.close()
-
 
 def recv_null_terminated(sock: socket.socket) -> str:
     data = b""

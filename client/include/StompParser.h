@@ -3,7 +3,7 @@
 #include<string>
 
 enum MessageType {
-    CONNECTED, MESSAGE, RECEIPT, ERROR
+    CONNECTED, MESSAGE, RECEIPT, ERROR, UNKNOWN
 };
 
 // Parser for STOMPS from the server

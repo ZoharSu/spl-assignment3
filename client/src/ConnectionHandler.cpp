@@ -82,8 +82,9 @@ bool ConnectionHandler::getFrameAscii(std::string &frame, char delimiter) {
 			if (!getBytes(&ch, 1)) {
 				return false;
 			}
-			if (ch != '\0')
+			if (ch != '\0') 
 				frame.append(1, ch);
+
 		} while (delimiter != ch);
 	} catch (std::exception &e) {
 		std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
@@ -105,4 +106,9 @@ void ConnectionHandler::close() {
 	} catch (...) {
 		std::cout << "closing failed: connection already closed" << std::endl;
 	}
+}
+
+void ConnectionHandler::shutdown() {
+	boost::system::error_code ec;
+	socket_.shutdown(boost::asio::socket_base::shutdown_receive, ec);
 }

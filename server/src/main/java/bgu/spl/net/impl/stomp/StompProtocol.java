@@ -25,6 +25,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
     public void start(int connectionId, Connections<String> connections) {
         this.connectionId = connectionId;
         this.connections = connections;
+        System.out.println("Client (" + connectionId + ")" + " connected");
     }
 
     @Override
@@ -68,11 +69,13 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
         StringBuilder msg = new StringBuilder();
         msg.append("RECEIPT\nreceipt-id:").append(receipt).append("\n\n");
+        System.out.println("Sent receipt to client (" + connectionId + ")");
         send(msg.toString());
     }
 
     private void handleSubscribe(StompParser p) {
         if (connections.subscribe(connectionId, p.id, p.dest)) {
+            System.out.println("Client (" + connectionId + ")" + " subscribed to: " + p.dest);
             sendReceipt(p.receipt);
             return;
         }
@@ -83,6 +86,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
 
     private void handleUnsubscribe(StompParser p) {
         if (connections.unsubscribe(connectionId, p.id)) {
+            System.out.println("Client (" + connectionId + ")" + " unsubscribed on id: " + p.id);
             sendReceipt(p.receipt);
             return;
         }
@@ -98,6 +102,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         msg.append("message-id:").append(nextMessageId.getAndIncrement());
         msg.append("\n\n").append(p.body).append("\n");
 
+        System.out.println("Client (" + connectionId + ")" + " sends to: " + p.dest);
         connections.send(p.dest, msg.toString());
         sendReceipt(p.receipt);
     }
@@ -111,6 +116,7 @@ public class StompProtocol implements StompMessagingProtocol<String> {
         loggedIn = false;
         sendReceipt(p.receipt);
         connections.disconnect(connectionId);
+        System.out.println("Client (" + connectionId + ")" + " logged out");
     }
 
     private void handleConnect(StompParser p) {
