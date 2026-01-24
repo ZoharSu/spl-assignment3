@@ -6,11 +6,11 @@
 StompProtocol::StompProtocol() : handler(nullptr), idToTopic(), receiptMap(), hash(), next_receipt(),
                                  isActive(false), mtx(), cv(), final_receipt(), username() {}
 
-int StompProtocol::topicToId(std::string topic) const {
+int StompProtocol::topicToId(const std::string& topic) const {
     return hash(username + topic);
 }
 
-bool StompProtocol::connect(std::string hostname, short port) {
+bool StompProtocol::connect(const std::string& hostname, short port) {
     handler.reset(new ConnectionHandler(hostname, port));
     if (!handler->connect()) {
         reset();
@@ -22,7 +22,7 @@ bool StompProtocol::connect(std::string hostname, short port) {
     return true;
 }
 
-StompParser StompProtocol::login(std::string user, std::string password) {
+StompParser StompProtocol::login(const std::string& user, const std::string& password) {
     this->username = user;
     std::vector<std::pair<std::string, std::string>> headers = {
         {"accept-version", "1.2"},
@@ -44,9 +44,9 @@ void StompProtocol::reset() {
     handler.reset();
 }
 
-void StompProtocol::send(const std::string command,
-                         const std::vector<std::pair<std::string, std::string>> headers,
-                         const std::string body)
+void StompProtocol::send(const std::string& command,
+                         const std::vector<std::pair<std::string, std::string>>& headers,
+                         const std::string& body)
 {
     std::string frame = command + '\n';
 
@@ -141,7 +141,7 @@ StompParser StompProtocol::recv() {
     return StompParser{frame};
 }
 
-void StompProtocol::await_answer(std::string receipt) {
+void StompProtocol::await_answer(const std::string& receipt) {
     std::unique_lock<std::mutex> lock(mtx);
     while (!receiptMap[receipt])
         cv.wait(lock);

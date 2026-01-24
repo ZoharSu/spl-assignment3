@@ -21,15 +21,15 @@ private:
     std::condition_variable cv;
     std::string final_receipt;
 
-    void send(const std::string command,
-              const std::vector<std::pair<std::string, std::string>> headers,
-              const std::string body = "");
+    void send(const std::string& command,
+              const std::vector<std::pair<std::string, std::string>>& headers,
+              const std::string& body = "");
 
     std::string get_receipt();
 
-    void await_answer(std::string receipt);
+    void await_answer(const std::string& receipt);
 
-    int topicToId(std::string topic) const;
+    int topicToId(const std::string& topic) const;
 
 public:
 
@@ -37,9 +37,9 @@ public:
 
     StompProtocol();
 
-    bool connect(std::string hostname, short port);
+    bool connect(const std::string& hostname, short port);
 
-    StompParser login(std::string user, std::string password);
+    StompParser login(const std::string& user, const std::string& password);
 
     void disconnect();
 
