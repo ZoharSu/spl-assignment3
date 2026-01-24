@@ -3,7 +3,8 @@
 #include <memory>
 #include <string>
 
-StompProtocol::StompProtocol() : handler(nullptr), isActive(false) {}
+StompProtocol::StompProtocol() : handler(nullptr), idToTopic(), receiptMap(), hash(), next_receipt(),
+                                 isActive(false), mtx(), cv(), username() {}
 
 int StompProtocol::topicToId(std::string topic) const {
     return hash(username + topic);

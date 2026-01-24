@@ -1,12 +1,10 @@
 #include "../include/utils.h"
 #include "../include/event.h"
 #include "../include/json.hpp"
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <map>
 #include <vector>
-#include <sstream>
 using json = nlohmann::json;
 
 Event::Event(std::string team_a_name, std::string team_b_name, std::string name, int time,
