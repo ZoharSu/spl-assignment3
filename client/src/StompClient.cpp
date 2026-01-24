@@ -23,7 +23,7 @@ void listener_loop(StompProtocol *p, Tracker *t) {
             Event e{frame};
             t->add(e, user);
         } else if (msg.type == RECEIPT)
-            p->process(msg);
+            if (p->process(msg)) return;
     }
 }
 
@@ -114,6 +114,7 @@ int main(int argc, char *argv[]) {
 
                 if (msg.type == CONNECTED) {
                     std::cout << "Login successful" << std::endl;
+                    if (listener.joinable()) listener.join();
                     listener = std::thread(listener_loop, &p, &tracker);
                 } else {
                     ensureClosed(p, listener);
