@@ -65,6 +65,11 @@ std::string to_string(Event& e) {
 void handle_report(StompProtocol& p, Command& command) {
     names_and_events events = parseEventsFile(command.filename);
 
+    if (!p.isSubscribed(events.team_a_name + '_' + events.team_b_name)) {
+        std::cout << "Subscribe to " << events.team_a_name + '_' + events.team_b_name << " before reporting" << std::endl;
+        return;
+    }
+
     auto comp = [](Event a, Event b) { return a.get_time() < b.get_time(); };
     std::sort(events.events.begin(), events.events.end(), comp);
 

@@ -116,6 +116,10 @@ void StompProtocol::unsubscribe(const std::string& topic) {
     std::cout << "Exited channel " << topic << std::endl;
 }
 
+bool StompProtocol::isSubscribed(const std::string& topic) const {
+    return idToTopic.find(topicToId(topic)) != idToTopic.end();
+}
+
 void StompProtocol::disconnect() {
     std::string receipt = get_receipt();
     final_receipt = receipt;

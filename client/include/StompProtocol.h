@@ -53,6 +53,8 @@ public:
 
     void unsubscribe(const std::string& topic);
 
+    bool isSubscribed(const std::string& topic) const;
+
     StompParser recv();
 
     void closeHandler();
