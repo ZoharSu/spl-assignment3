@@ -19,6 +19,7 @@ private:
     std::atomic<bool> isActive;
     std::mutex mtx;
     std::condition_variable cv;
+    std::string final_receipt;
 
     void send(const std::string command,
               const std::vector<std::pair<std::string, std::string>> headers,
@@ -42,7 +43,7 @@ public:
 
     void disconnect();
 
-    void process(const StompParser& p);
+    bool process(const StompParser& p);
 
     void send(const std::string& topic, const std::string& file, const std::string& msg);
 

@@ -4,7 +4,7 @@
 #include <string>
 
 StompProtocol::StompProtocol() : handler(nullptr), idToTopic(), receiptMap(), hash(), next_receipt(),
-                                 isActive(false), mtx(), cv(), username() {}
+                                 isActive(false), mtx(), cv(), final_receipt(), username() {}
 
 int StompProtocol::topicToId(std::string topic) const {
     return hash(username + topic);
@@ -37,13 +37,10 @@ StompParser StompProtocol::login(std::string user, std::string password) {
 
 void StompProtocol::closeHandler() {
     isActive = false;
-    if (handler) {
-        handler->shutdown();
-        handler->close();
-    }
 }
 
 void StompProtocol::reset() {
+    final_receipt = "";
     handler.reset();
 }
 
@@ -121,6 +118,7 @@ void StompProtocol::unsubscribe(const std::string& topic) {
 
 void StompProtocol::disconnect() {
     std::string receipt = get_receipt();
+    final_receipt = receipt;
     send("DISCONNECT", {{"receipt", receipt}});
     await_answer(receipt);
 }
@@ -151,10 +149,12 @@ std::string StompProtocol::get_receipt() {
     return std::to_string(this->next_receipt++);
 }
 
-void StompProtocol::process(const StompParser& p) {
+bool StompProtocol::process(const StompParser& p) {
     {
         std::unique_lock<std::mutex> lock(mtx);
         if (!p.receipt.empty()) receiptMap[p.receipt] = true;
     }
     cv.notify_all();
+
+    return p.receipt != "" && p.receipt == final_receipt;
 }
